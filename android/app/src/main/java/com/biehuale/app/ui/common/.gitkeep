@@ -1,0 +1,3 @@
+// 此目录用于存放跨 Tab 复用的 Composable 组件
+// 例如：EmptyState / ErrorState / LoadingState / MoneyInput / CategoryChip 等
+// 详见 docs/DEV_PLAN.md §4 Task 4.7

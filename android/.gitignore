@@ -1,0 +1,53 @@
+# =====================================================
+#  别花乐 (BieHuaLe) - android/ 模块 .gitignore
+#  补充根 .gitignore 没覆盖的 Android Studio 产物
+# =====================================================
+#
+# 注：根 .gitignore 已经覆盖大部分常见项
+# 这里只列 android 子模块特有的、或需要在 IDE 中独立识别的项
+
+# ──────────────────── Android Studio / IntelliJ ────────────────────
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# ──────────────────── Gradle ────────────────────
+.gradle/
+local.properties          # 本机 SDK 路径
+build/                    # 所有模块的 build 输出
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Kotlin 编译器缓存（K2 compiler）
+.kotlin/
+
+# ──────────────────── Build outputs ────────────────────
+*.apk
+*.aab
+*.ap_
+*.dex
+*.class
+*.hprof                  # Memory Profiler 输出
+*.trace                  # Perfetto 输出
+release/
+
+# ──────────────────── 测试 / 覆盖率产物 ────────────────────
+**/build/reports/
+**/build/test-results/
+**/build/reports/coverage/
+
+# ──────────────────── OS ────────────────────
+Thumbs.db
+.DS_Store
+$RECYCLE.BIN/
+desktop.ini
+
+# ──────────────────── 应该 commit 的（明确不忽略）────────────────────
+#
+#   gradle/wrapper/{gradle-wrapper.jar, gradle-wrapper.properties}
+#   gradle/libs.versions.toml
+#   app/schemas/com.biehuale.app.data.db.AppDatabase/*.json
+#   app/local.properties.example
+#   所有源代码（src/main/, src/test/, src/androidTest/）

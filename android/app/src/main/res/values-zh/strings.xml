@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 中文 locale 下的 strings 覆盖（与 values/strings.xml 一致） -->
+    <string name="app_name">别花乐</string>
+    <string name="tab_bill">账单</string>
+    <string name="tab_record">记账</string>
+    <string name="tab_settings">设置</string>
+</resources>

@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  别花乐 (BieHuaLe) - AndroidManifest.xml
+  =====================================================
+  隐私优先：
+    - 不申请任何运行时权限（无 INTERNET / STORAGE / NOTIFICATION）
+    - allowBackup=false：不允许系统云备份，设备迁移走 SAF 手动 JSON 导入导出
+  参考：docs/PRD.md §9.2
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- 注意：故意不声明任何 uses-permission -->
+    <!-- 备份导出走 Storage Access Framework (SAF)，不需要 WRITE_EXTERNAL_STORAGE -->
+
+    <application
+        android:name=".BieHuaLeApp"
+        android:allowBackup="false"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.BieHuaLe"
+        tools:targetApi="35">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboardHidden|uiMode|locale|layoutDirection|fontScale"
+            android:windowSoftInputMode="adjustResize"
+            android:theme="@style/Theme.BieHuaLe.Splash">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- 使用 BieHuaLeApp Configuration.Provider + HiltWorkerFactory，禁用默认 Initializer -->
+        <provider
+            android:name="androidx.startup.InitializationProvider"
+            android:authorities="${applicationId}.androidx-startup"
+            android:exported="false"
+            tools:node="merge">
+            <meta-data
+                android:name="androidx.work.WorkManagerInitializer"
+                android:value="androidx.startup"
+                tools:node="remove" />
+        </provider>
+    </application>
+</manifest>

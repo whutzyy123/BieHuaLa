@@ -1,0 +1,244 @@
+package com.biehuale.app.ui.bill.components
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountBalanceWallet
+import androidx.compose.material.icons.filled.ArrowDownward
+import androidx.compose.material.icons.filled.ArrowUpward
+import androidx.compose.material.icons.filled.Category
+import androidx.compose.material.icons.filled.SwapHoriz
+import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.SheetState
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.unit.dp
+import com.biehuale.app.data.db.entity.AccountEntity
+import com.biehuale.app.data.db.entity.CategoryEntity
+import com.biehuale.app.domain.model.TransactionType
+
+/**
+ * 筛选 BottomSheet（本地 draft，点「应用」再写回）
+ *
+ * 详见 docs/DEV_PLAN.md §6 Task 3.6
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun FilterBottomSheet(
+    sheetState: SheetState,
+    onDismiss: () -> Unit,
+    selectedTypes: Set<TransactionType>,
+    selectedAccountIds: Set<Long>,
+    selectedCategoryIds: Set<Long>,
+    accounts: List<AccountEntity>,
+    categories: List<CategoryEntity>,
+    onApply: (types: Set<TransactionType>, accountIds: Set<Long>, categoryIds: Set<Long>) -> Unit,
+    onClearApplied: () -> Unit
+) {
+    var draftTypes by remember { mutableStateOf(selectedTypes) }
+    var draftAccounts by remember { mutableStateOf(selectedAccountIds) }
+    var draftCategories by remember { mutableStateOf(selectedCategoryIds) }
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "筛选",
+                    style = MaterialTheme.typography.titleLarge
+                )
+                Spacer(modifier = Modifier.weight(1f))
+                TextButton(onClick = {
+                    draftTypes = emptySet()
+                    draftAccounts = emptySet()
+                    draftCategories = emptySet()
+                    onClearApplied()
+                }) {
+                    Text("清除")
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            FilterSection(title = "类型") {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    TypeChip(
+                        label = "支出",
+                        icon = Icons.Filled.ArrowUpward,
+                        selected = TransactionType.EXPENSE in draftTypes,
+                        onClick = { draftTypes = draftTypes.toggle(TransactionType.EXPENSE) }
+                    )
+                    TypeChip(
+                        label = "收入",
+                        icon = Icons.Filled.ArrowDownward,
+                        selected = TransactionType.INCOME in draftTypes,
+                        onClick = { draftTypes = draftTypes.toggle(TransactionType.INCOME) }
+                    )
+                    TypeChip(
+                        label = "转账",
+                        icon = Icons.Filled.SwapHoriz,
+                        selected = TransactionType.TRANSFER in draftTypes,
+                        onClick = { draftTypes = draftTypes.toggle(TransactionType.TRANSFER) }
+                    )
+                }
+            }
+
+            HorizontalDivider()
+            Spacer(modifier = Modifier.height(8.dp))
+
+            FilterSection(title = "账户") {
+                if (accounts.isEmpty()) {
+                    Text(
+                        text = "暂无账户",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.height(180.dp),
+                        verticalArrangement = Arrangement.spacedBy(2.dp)
+                    ) {
+                        items(accounts, key = { it.id }) { account ->
+                            CheckboxRow(
+                                label = account.name,
+                                icon = Icons.Filled.AccountBalanceWallet,
+                                checked = account.id in draftAccounts,
+                                onToggle = { draftAccounts = draftAccounts.toggle(account.id) }
+                            )
+                        }
+                    }
+                }
+            }
+
+            HorizontalDivider()
+            Spacer(modifier = Modifier.height(8.dp))
+
+            FilterSection(title = "类别") {
+                if (categories.isEmpty()) {
+                    Text(
+                        text = "暂无类别",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.height(200.dp),
+                        verticalArrangement = Arrangement.spacedBy(2.dp)
+                    ) {
+                        items(categories, key = { it.id }) { category ->
+                            CheckboxRow(
+                                label = category.name,
+                                icon = Icons.Filled.Category,
+                                checked = category.id in draftCategories,
+                                onToggle = { draftCategories = draftCategories.toggle(category.id) }
+                            )
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Button(
+                onClick = {
+                    onApply(draftTypes, draftAccounts, draftCategories)
+                    onDismiss()
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("应用")
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+        }
+    }
+}
+
+private fun <T> Set<T>.toggle(item: T): Set<T> {
+    val next = toMutableSet()
+    if (!next.add(item)) next.remove(item)
+    return next
+}
+
+@Composable
+private fun FilterSection(
+    title: String,
+    content: @Composable () -> Unit
+) {
+    Column(modifier = Modifier.padding(vertical = 8.dp)) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.primary
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        content()
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun TypeChip(
+    label: String,
+    icon: ImageVector,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    FilterChip(
+        selected = selected,
+        onClick = onClick,
+        label = { Text(label) },
+        leadingIcon = { Icon(icon, contentDescription = null, modifier = Modifier.size(16.dp)) }
+    )
+}
+
+@Composable
+private fun CheckboxRow(
+    label: String,
+    icon: ImageVector,
+    checked: Boolean,
+    onToggle: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 2.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Checkbox(checked = checked, onCheckedChange = { onToggle() })
+        Icon(icon, contentDescription = null, modifier = Modifier.size(20.dp))
+        Spacer(modifier = Modifier.size(8.dp))
+        Text(label, style = MaterialTheme.typography.bodyMedium)
+    }
+}

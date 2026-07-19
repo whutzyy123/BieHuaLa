@@ -1,0 +1,128 @@
+# =====================================================
+#  别花乐 (BieHuaLe) - Root .gitignore
+#  适用于整个仓库（包括 android/ 子目录）
+# =====================================================
+#
+# 哪些应该提交、哪些不应该：
+#  ✅ 应该 commit：源代码、build.gradle.kts、libs.versions.toml、
+#                  app/schemas/*.json（Room migration 测试用）、
+#                  gradle/wrapper/{jar, properties}（让项目可被克隆后直接构建）、
+#                  local.properties.example（SDK 路径模板）
+#  ❌ 不应该 commit：构建产物、本机配置、IDE 个人状态、密钥
+#
+# 注：android/ 和 android/app/ 还有各自的 .gitignore 做更细的控制
+# =====================================================
+
+
+# ──────────────────── Android / Gradle ────────────────────
+*.iml
+.gradle/                  # Gradle 缓存（用户级 + 项目级都忽略）
+local.properties          # 本机 SDK 路径，不提交
+build/                    # 所有模块的 build 输出
+captures/                 # Profiler / GPU Debugger 抓取数据
+.externalNativeBuild/     # NDK CMake 输出
+.cxx/                     # NDK 缓存
+
+# Kotlin 编译器缓存（v0.2+）
+.kotlin/
+
+# ──────────────────── IDE ────────────────────
+.idea/                    # IntelliJ / Android Studio 个人状态（workspace.xml / tasks.xml 等）
+*.ipr
+*.iws
+.vscode/
+
+# 如果团队要共享代码风格 / 模板，可改用：
+#   .idea/codeStyles/
+#   .idea/inspectionProfiles/
+#   .editorconfig
+# 这两个文件应该 commit，.idea/ 整体忽略后这些会一并忽略，团队改用 .editorconfig 即可
+
+# ──────────────────── Build artifacts ────────────────────
+*.apk
+*.aab
+*.ap_                    # APK 中间产物
+*.dex
+*.class
+bin/
+gen/
+out/
+release/                 # 本地 build 输出
+
+# ──────────────────── Profiling / Debug 输出 ────────────────────
+*.hprof                  # Android heap dump（Memory Profiler）
+*.trace                  # Perfetto / systrace 输出
+*.dmp                    # native crash dump
+
+# ──────────────────── 密钥 / 签名（绝对不能 commit）────────────────────
+*.jks
+*.keystore
+*.pfx
+*.p12
+key.properties
+**/key.properties
+google-services.json
+**/google-services.json
+
+# ──────────────────── 本地配置（不能 commit）────────────────────
+**/local.properties
+**/secrets.properties
+# 注：local.properties.example 应该 commit
+
+# ──────────────────── Logs ────────────────────
+*.log
+logs/
+hs_err_pid*
+replay_pid*
+
+# ──────────────────── OS ────────────────────
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+desktop.ini
+$RECYCLE.BIN/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*                       # macOS 资源分支文件
+.Spotlight-V100
+.Trashes
+.fseventsd
+
+# Linux
+*~                        # Emacs / Vim 备份
+
+# ──────────────────── Node（如果有 JS 工具链）────────────────────
+node_modules/
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+.pnpm-store/
+
+# ──────────────────── Misc / 编辑器 ────────────────────
+*.swp
+*.swo                    # Vim
+*.bak
+*.tmp
+*.orig                   # git merge / rebase 冲突备份
+*.rej                    # patch reject 文件
+.idea_modules/
+
+# ──────────────────── 测试 / 覆盖率产物 ────────────────────
+# 这些都在 build/ 下，已被 build/ 覆盖；保留显式列出便于查找
+**/build/reports/
+**/build/test-results/
+**/build/reports/coverage/
+*.lcov
+*.coverage
+.coverage
+
+# ──────────────────── 第三方 / 临时 ────────────────────
+.DS_Store?
+ehthumbs_vista.db
+Icon?
+Thumbs.db:encryptable

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!--
+      Base theme：透明 + 边到边 + Material 3 兼容
+      Compose 在运行时通过 BieHuaLeTheme 接管真实 ColorScheme
+      这里只负责 Activity 启动瞬间的 native 主题
+    -->
+    <style name="Theme.BieHuaLe" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/splash_background</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
+    </style>
+
+    <!-- SplashScreen API（core-splashscreen）；~200ms + MainActivity.installSplashScreen() -->
+    <style name="Theme.BieHuaLe.Splash" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/splash_background</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
+        <item name="windowSplashScreenAnimationDuration">200</item>
+        <item name="postSplashScreenTheme">@style/Theme.BieHuaLe</item>
+    </style>
+</resources>

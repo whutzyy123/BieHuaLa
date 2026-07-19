@@ -1,0 +1,4 @@
+// 此目录存放 Android 设备/模拟器集成测试
+//  - Room Migration 测试
+//  - Compose UI 测试
+//  - 端到端流程测试

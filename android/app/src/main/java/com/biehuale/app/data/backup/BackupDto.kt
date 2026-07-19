@@ -1,0 +1,86 @@
+package com.biehuale.app.data.backup
+
+import kotlinx.serialization.Serializable
+
+/**
+ * 别花乐 (BieHuaLe) - 备份 JSON Schema
+ *
+ * 详见 docs/PRD.md §10.1
+ *
+ * Schema 版本演进：
+ *  - v1：初始 schema（type 为 String）
+ *  - 后续加字段：schemaVersion += 1，BackupDto 加新字段，旧版本解析仍兼容
+ *  - 删/重命名字段：禁止 — 必须新增 + 迁移
+ *
+ * 重要：DTO 层的 `type` 保持 String（与历史 v1 备份兼容），
+ * 仅在 import / export 时与 domain enum 互转（toDto / fromDto 转换函数）。
+ */
+object BackupSchema {
+    const val CURRENT_VERSION = 1
+    const val SUPPORTED_MIN_VERSION = 1  // 拒绝 schemaVersion < 此值的备份
+}
+
+@Serializable
+data class BackupDto(
+    val schemaVersion: Int = BackupSchema.CURRENT_VERSION,
+    val appVersion: String,
+    val exportedAt: String,  // ISO 8601 UTC
+    val accounts: List<AccountDto> = emptyList(),
+    val categories: List<CategoryDto> = emptyList(),
+    val transactions: List<TransactionDto> = emptyList()
+)
+
+@Serializable
+data class AccountDto(
+    val id: Long,
+    val name: String,
+    val icon: String? = null,
+    val color: String? = null,
+    val initialBalance: Long = 0L,
+    val isArchived: Boolean = false,
+    val createdAt: Long,
+    val updatedAt: Long
+)
+
+@Serializable
+data class CategoryDto(
+    val id: Long,
+    val name: String,
+    val icon: String? = null,
+    val color: String? = null,
+    /** "INCOME" / "EXPENSE" */
+    val type: String,
+    val isBuiltin: Boolean = false,
+    val sortOrder: Int = 0,
+    val isArchived: Boolean = false,
+    val createdAt: Long,
+    val updatedAt: Long
+)
+
+@Serializable
+data class TransactionDto(
+    val id: Long,
+    val amount: Long,                    // 分
+    /** "INCOME" / "EXPENSE" / "TRANSFER" */
+    val type: String,
+    val categoryId: Long? = null,
+    val accountId: Long,
+    val toAccountId: Long? = null,
+    val description: String? = null,
+    val occurredAt: Long,
+    val createdAt: Long,
+    val updatedAt: Long,
+    val deletedAt: Long? = null
+)
+
+/**
+ * 导入结果统计
+ */
+@Serializable
+data class ImportResult(
+    val accountsInserted: Int = 0,
+    val categoriesInserted: Int = 0,
+    val transactionsInserted: Int = 0,
+    /** 校验失败、无法映射或指纹重复而跳过的交易数 */
+    val transactionsSkipped: Int = 0
+)

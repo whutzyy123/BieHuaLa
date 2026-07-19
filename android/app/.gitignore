@@ -1,0 +1,46 @@
+# =====================================================
+#  别花乐 (BieHuaLe) - android/app/ 模块 .gitignore
+#  app 模块构建产物（不要 commit）
+# =====================================================
+#
+# 注：根 .gitignore 和 android/.gitignore 已经覆盖大部分项
+# 这里只列 app/ 模块特有的细节
+
+# ──────────────────── Build outputs ────────────────────
+/build/
+/captures/
+/release/
+/outputs/
+
+# ──────────────────── Build artifacts ────────────────────
+*.apk
+*.aab
+*.ap_
+*.dex
+*.class
+*.hprof                  # Memory Profiler dump
+*.trace                  # Perfetto / systrace 输出
+
+# ──────────────────── Gradle 缓存 ────────────────────
+.gradle/
+
+# ──────────────────── 本机配置 ────────────────────
+/local.properties
+/local.properties.example.bak
+
+# ──────────────────── 测试 / 覆盖率产物 ────────────────────
+/build/reports/
+/build/test-results/
+/build/outputs/apk/androidTest/
+
+# ──────────────────── 应该 commit 的（明确不忽略）────────────────────
+#
+#   src/main/                                业务代码
+#   src/test/                                单元测试
+#   src/androidTest/                         集成测试
+#   schemas/com.biehuale.app.data.db.AppDatabase/*.json  ← Room schema 快照（migration 测试用，**必须 commit**）
+#   proguard-rules.pro
+#   build.gradle.kts
+#
+# 不要在 schemas/ 目录加 .gitignore — 否则会破坏 Room migration 测试
+# 不要忽略 local.properties.example — 它是给协作者复制的模板

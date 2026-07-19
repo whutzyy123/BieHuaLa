@@ -1,0 +1,12 @@
+# =====================================================
+#  local.properties 示例
+# =====================================================
+#  复制本文件为 local.properties 并填入你本机的 SDK 路径
+#  local.properties 已在 .gitignore 中，不会被提交
+# =====================================================
+
+# Windows 示例：
+sdk.dir=C\:\\Users\\DELL\\AppData\\Local\\Android\\Sdk
+
+# macOS / Linux 示例：
+# sdk.dir=/Users/yourname/Library/Android/sdk

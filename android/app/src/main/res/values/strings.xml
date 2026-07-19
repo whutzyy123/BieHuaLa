@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 应用名 -->
+    <string name="app_name">别花乐</string>
+
+    <!-- ========== 底部 Tab ========== -->
+    <string name="tab_bill">账单</string>
+    <string name="tab_record">记账</string>
+    <string name="tab_settings">设置</string>
+
+    <!-- ========== 通用 ========== -->
+    <string name="common_save">保存</string>
+    <string name="common_cancel">取消</string>
+    <string name="common_delete">删除</string>
+    <string name="common_edit">编辑</string>
+    <string name="common_confirm">确认</string>
+    <string name="common_back">返回</string>
+
+    <!-- ========== 占位（Phase 实装时替换） ========== -->
+    <string name="placeholder_bill">账单 Tab</string>
+    <string name="placeholder_record">记账 Tab</string>
+    <string name="placeholder_settings">设置 Tab</string>
+</resources>
