@@ -212,7 +212,8 @@ class TransactionRepositoryTest {
         // deleted_at < threshold 才清理：把删除时间回拨到 31 天前
         val now = System.currentTimeMillis()
         val deletedAt = now - 31L * 24 * 60 * 60 * 1000
-        db.transactionDao().softDelete(id, deletedAt)
+        val soft = transactionRepo.getById(id)!!
+        db.transactionDao().update(soft.copy(deletedAt = deletedAt, updatedAt = deletedAt))
 
         val threshold = now - 30L * 24 * 60 * 60 * 1000
         transactionRepo.cleanupExpired(threshold)

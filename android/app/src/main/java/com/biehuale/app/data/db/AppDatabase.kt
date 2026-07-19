@@ -22,8 +22,8 @@ import com.biehuale.app.data.db.entity.TransactionEntity
  * Schema 版本演进：
  *  - version = 1：初始 schema（type 为 TEXT）
  *  - version = 2：type 字段由 String 升级为 TransactionType / CategoryType
- *    枚举（DB schema 不变，仅 Kotlin 侧 + 单元测试）
- *  - 后续升级：version += 1，加 Migration 对象
+ *    枚举（DB schema 不变，仅 Kotlin 侧）
+ *  - version = 3：transactions.to_account_id 加索引
  *
  * exportSchema = true：编译时导出 schema JSON 到 $projectDir/schemas/
  * 用于 Migration 测试做 diff 验证。
@@ -34,7 +34,7 @@ import com.biehuale.app.data.db.entity.TransactionEntity
         CategoryEntity::class,
         TransactionEntity::class
     ],
-    version = 2,
+    version = 3,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -46,21 +46,26 @@ abstract class AppDatabase : RoomDatabase() {
 
     companion object {
         const val DATABASE_NAME = "biehuale.db"
-        const val SCHEMA_VERSION = 2
+        const val SCHEMA_VERSION = 3
 
         /**
-         * Migration 1 → 2：v0.2 升级
-         *
-         * 实际无 schema 变更（type 列在 v1 已存 "INCOME"/"EXPENSE"/"TRANSFER" 字符串），
-         * 仅 Kotlin 侧的字段类型由 String 改成 enum，Converters 自动用 .name 互转。
-         *
-         * 此 Migration 留作"显式声明"——避免 Room 误判 schema hash 变化要求 destructiveMigration。
-         * 也可以 no-op（空实现）但要保证 Room 不抛 "Migration didn't properly handle"。
+         * Migration 1 → 2：v0.2 升级（schema 无结构变更，显式 no-op）
          */
         val MIGRATION_1_2: Migration = object : Migration(1, 2) {
             override fun migrate(db: SupportSQLiteDatabase) {
-                // 显式 no-op：表结构未变，仅 Kotlin 侧字段类型升级
-                // 数据格式完全兼容（"INCOME"/"EXPENSE"/"TRANSFER" 字符串继续可用）
+                // no-op
+            }
+        }
+
+        /**
+         * Migration 2 → 3：为 to_account_id 外键补索引（消除全表扫描风险）
+         */
+        val MIGRATION_2_3: Migration = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_transactions_to_account_id` " +
+                        "ON `transactions` (`to_account_id`)"
+                )
             }
         }
     }

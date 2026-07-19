@@ -26,9 +26,13 @@ import javax.inject.Singleton
  * v0.2：DTO 字段保持 String（与历史 v1 JSON 兼容），导入时再转 enum 写入 entity。
  *
  * Merge 交易语义（fingerprint 不含 deletedAt）：
- * - 无匹配 → insert
- * - 匹配活跃行 → skip（去重）
- * - 匹配软删行 → restore（导出后软删再导入可「复活」，避免重复记账）
+ * - 无匹配 → insert（保留备份 deletedAt）
+ * - 本地软删 + 备份 active → restore
+ * - 本地软删 + 备份软删 → skip
+ * - 本地活跃 + 备份 active → skip
+ * - 本地活跃 + 备份软删 → softDelete 本地
+ *
+ * 同名账户：更新 icon/color/归档；仅当本地 initialBalance==0 时采用备份期初。
  */
 @Singleton
 class BackupImporter @Inject constructor(
@@ -102,14 +106,16 @@ class BackupImporter @Inject constructor(
         for (accDto in backup.accounts) {
             val existing = existingAccounts.firstOrNull { it.name == accDto.name }
             val newId = if (existing != null) {
-                // 换机恢复：同名合并时采用备份的 initialBalance（避免种子「现金」=0 盖住备份余额）
-                if (existing.initialBalance != accDto.initialBalance ||
+                // 期初：仅本地为 0 时采用备份（覆盖种子现金=0）；本地已非 0 则保留
+                val mergedInitial =
+                    if (existing.initialBalance == 0L) accDto.initialBalance else existing.initialBalance
+                if (existing.initialBalance != mergedInitial ||
                     existing.isArchived != accDto.isArchived ||
                     existing.icon != accDto.icon ||
                     existing.colorHex != accDto.color
                 ) {
                     val updated = existing.copy(
-                        initialBalance = accDto.initialBalance,
+                        initialBalance = mergedInitial,
                         isArchived = accDto.isArchived,
                         icon = accDto.icon,
                         colorHex = accDto.color,
@@ -214,6 +220,7 @@ class BackupImporter @Inject constructor(
         val toInsert = mutableListOf<TransactionEntity>()
         var skipped = 0
         var restored = 0
+        var softDeleted = 0
 
         for (txDto in backup.transactions) {
             val txType = TransactionType.fromOrNull(txDto.type)
@@ -263,12 +270,20 @@ class BackupImporter @Inject constructor(
             val fp = fingerprint(entity)
             val existing = existingByFp[fp]
             if (existing != null) {
-                if (existing.deletedAt != null) {
-                    transactionDao.restore(existing.id, now)
-                    existingByFp[fp] = existing.copy(deletedAt = null, updatedAt = now)
-                    restored++
-                } else {
-                    skipped++
+                val backupSoft = txDto.deletedAt != null
+                val localSoft = existing.deletedAt != null
+                when {
+                    localSoft && !backupSoft -> {
+                        transactionDao.restore(existing.id, now)
+                        existingByFp[fp] = existing.copy(deletedAt = null, updatedAt = now)
+                        restored++
+                    }
+                    !localSoft && backupSoft -> {
+                        transactionDao.softDelete(existing.id, now)
+                        existingByFp[fp] = existing.copy(deletedAt = now, updatedAt = now)
+                        softDeleted++
+                    }
+                    else -> skipped++ // 双方同为活跃或同为软删
                 }
                 continue
             }
@@ -283,9 +298,11 @@ class BackupImporter @Inject constructor(
         return ImportResult(
             accountsInserted = accountsInserted,
             categoriesInserted = categoriesInserted,
+            categoriesSkipped = categoriesSkipped,
             transactionsInserted = toInsert.size,
             transactionsRestored = restored,
-            transactionsSkipped = skipped + categoriesSkipped
+            transactionsSoftDeleted = softDeleted,
+            transactionsSkipped = skipped
         )
     }
 

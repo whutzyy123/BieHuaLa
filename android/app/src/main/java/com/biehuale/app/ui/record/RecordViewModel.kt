@@ -206,10 +206,11 @@ class RecordViewModel @Inject constructor(
             return
         }
         val ok = validated as RecordValidation.Ok
+        // 在 launch 前同步置位，防止连点双 insert
+        _uiState.value = state.copy(isSaving = true)
 
         viewModelScope.launch {
             val wasEditing = editingId.value != null
-            _uiState.value = _uiState.value.copy(isSaving = true)
             try {
                 val type = when (state.mode) {
                     RecordMode.EXPENSE -> TransactionType.EXPENSE

@@ -134,13 +134,6 @@ interface TransactionDao {
     @Query("SELECT * FROM transactions WHERE deleted_at IS NOT NULL ORDER BY deleted_at DESC")
     fun observeRecycleBin(): Flow<List<TransactionEntity>>
 
-    @Query("""
-        SELECT * FROM transactions
-        WHERE deleted_at IS NOT NULL
-          AND deleted_at < :thresholdMillis
-    """)
-    suspend fun getExpiredForCleanup(thresholdMillis: Long): List<TransactionEntity>
-
     // ---------- 写入 ----------
 
     @Insert(onConflict = OnConflictStrategy.ABORT)
@@ -153,14 +146,19 @@ interface TransactionDao {
     suspend fun update(transaction: TransactionEntity)
 
     /**
-     * 软删除：设置 deleted_at = now
-     * 不真删，30 天后由 WorkManager 清理（见 docs/DEV_PLAN.md §7 Task 4.5）
+     * 软删除：仅尚未软删的行；避免重置 30 天清理计时。
      */
-    @Query("UPDATE transactions SET deleted_at = :now, updated_at = :now WHERE id = :id")
-    suspend fun softDelete(id: Long, now: Long)
+    @Query(
+        """
+        UPDATE transactions
+        SET deleted_at = :now, updated_at = :now
+        WHERE id = :id AND deleted_at IS NULL
+        """
+    )
+    suspend fun softDelete(id: Long, now: Long): Int
 
     /**
-     * 恢复：从回收站恢复。返回受影响行数（0 = 无此 id 或已非软删状态视 SQL 而定）。
+     * 恢复：从回收站恢复。返回受影响行数。
      */
     @Query(
         """
@@ -172,13 +170,10 @@ interface TransactionDao {
     suspend fun restore(id: Long, now: Long): Int
 
     /**
-     * 永久删除单笔
+     * 永久删除单笔。返回受影响行数。
      */
     @Query("DELETE FROM transactions WHERE id = :id")
-    suspend fun hardDelete(id: Long)
-
-    @Query("DELETE FROM transactions WHERE id IN (:ids)")
-    suspend fun hardDeleteIds(ids: List<Long>)
+    suspend fun hardDelete(id: Long): Int
 
     /** 清空回收站（单条 SQL，原子） */
     @Query("DELETE FROM transactions WHERE deleted_at IS NOT NULL")

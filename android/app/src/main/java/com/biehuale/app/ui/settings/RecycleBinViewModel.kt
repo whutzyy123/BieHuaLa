@@ -71,8 +71,11 @@ class RecycleBinViewModel @Inject constructor(
     fun hardDelete(id: Long) {
         viewModelScope.launch {
             try {
-                transactionRepository.hardDelete(id)
-                _events.emit(RecycleBinEvent.Message("已永久删除"))
+                if (transactionRepository.hardDelete(id)) {
+                    _events.emit(RecycleBinEvent.Message("已永久删除"))
+                } else {
+                    _events.emit(RecycleBinEvent.Error("删除失败：记录不存在"))
+                }
             } catch (e: Exception) {
                 _events.emit(RecycleBinEvent.Error(e.message ?: "删除失败"))
             }

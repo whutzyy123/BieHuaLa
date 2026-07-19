@@ -7,6 +7,26 @@
 
 ---
 
+## [0.3.1] - 2026-07-19
+
+**残余缺陷修复**（全量复盘后）。详见 [RELEASE_NOTES_v0.3.1.md](./RELEASE_NOTES_v0.3.1.md)。
+
+### Fixed
+
+- **备份 merge deletedAt 矩阵**：本地软删+备份软删保持回收站；本地活跃+备份软删 → 同步 softDelete；本地软删+备份 active → restore
+- **同名账户期初**：仅本地 `initialBalance==0` 时采用备份期初，避免同机重导盖掉已改期初
+- **记账连点**：`onSave` 在 `launch` 前同步 `isSaving`，防止双 insert
+- **softDelete**：仅更新尚未软删的行；**hardDelete** 校验行数
+- **Room v3**：`to_account_id` 索引 + `MIGRATION_2_3`
+
+### Changed
+
+- 备份预览与导入状态分离（读取中 / 导入中）
+- `ImportResult` 拆分 `categoriesSkipped` / `transactionsSoftDeleted`
+- `versionName` → `0.3.1`（versionCode 3）
+
+---
+
 ## [0.3.0] - 2026-07-19
 
 **第一性原理审查修复**（[`docs/REVIEW_REPORT.md`](./docs/REVIEW_REPORT.md) / [RELEASE_NOTES_v0.3.0.md](./RELEASE_NOTES_v0.3.0.md)）。

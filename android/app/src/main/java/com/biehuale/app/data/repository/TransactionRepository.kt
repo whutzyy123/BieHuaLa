@@ -168,11 +168,10 @@ class TransactionRepository @Inject constructor(
     }
 
     /**
-     * 永久删除单笔
+     * 永久删除单笔。成功（至少删除 1 行）返回 true。
      */
-    suspend fun hardDelete(id: Long) {
-        transactionDao.hardDelete(id)
-    }
+    suspend fun hardDelete(id: Long): Boolean =
+        transactionDao.hardDelete(id) > 0
 
     /** 清空回收站（单条 SQL） */
     suspend fun emptyBin() {

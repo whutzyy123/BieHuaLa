@@ -167,7 +167,8 @@ class AppDatabaseTest {
         transactionRepo.softDelete(oldTxId)
 
         val deletedAt = now - 31L * 24 * 60 * 60 * 1000
-        db.transactionDao().softDelete(oldTxId, deletedAt)
+        val soft = transactionRepo.getById(oldTxId)!!
+        db.transactionDao().update(soft.copy(deletedAt = deletedAt, updatedAt = deletedAt))
 
         val threshold = now - 30L * 24 * 60 * 60 * 1000
         transactionRepo.cleanupExpired(threshold)

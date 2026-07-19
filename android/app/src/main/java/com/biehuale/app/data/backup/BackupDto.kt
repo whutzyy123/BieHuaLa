@@ -80,9 +80,13 @@ data class TransactionDto(
 data class ImportResult(
     val accountsInserted: Int = 0,
     val categoriesInserted: Int = 0,
+    /** 非法类别 type 等未建映射的类别数 */
+    val categoriesSkipped: Int = 0,
     val transactionsInserted: Int = 0,
-    /** 指纹命中本地软删行并已恢复的数量 */
+    /** 本地软删 + 备份 active → 已恢复 */
     val transactionsRestored: Int = 0,
-    /** 校验失败、无法映射或活跃指纹重复而跳过的交易数 */
+    /** 本地活跃 + 备份软删 → 已同步软删 */
+    val transactionsSoftDeleted: Int = 0,
+    /** 校验失败、无法映射或双方状态一致而跳过的交易数 */
     val transactionsSkipped: Int = 0
 )

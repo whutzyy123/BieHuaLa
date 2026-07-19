@@ -54,7 +54,8 @@ import com.biehuale.app.domain.model.TransactionType
         Index(value = ["occurred_at"]),
         Index(value = ["account_id", "occurred_at"]),
         Index(value = ["category_id", "occurred_at"]),
-        Index(value = ["deleted_at"])
+        Index(value = ["deleted_at"]),
+        Index(value = ["to_account_id"])
     ]
 )
 data class TransactionEntity(

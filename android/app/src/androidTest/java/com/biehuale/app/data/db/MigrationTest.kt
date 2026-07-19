@@ -115,6 +115,43 @@ class MigrationTest {
         db.close()
     }
 
+    @Test
+    fun migrate2to3_addsToAccountIdIndex() {
+        helper.createDatabase(TEST_DB, 2).apply {
+            execSQL(
+                """
+                INSERT INTO accounts (id, name, icon, color, initial_balance, is_archived, created_at, updated_at)
+                VALUES (1, '现金', NULL, NULL, 0, 0, 1000, 1000),
+                       (2, '微信', NULL, NULL, 0, 0, 1000, 1000)
+                """.trimIndent()
+            )
+            execSQL(
+                """
+                INSERT INTO transactions (id, amount, type, category_id, account_id, to_account_id, description, occurred_at, created_at, updated_at, deleted_at)
+                VALUES (1, 1000, 'TRANSFER', NULL, 1, 2, NULL, 2000, 2000, 2000, NULL)
+                """.trimIndent()
+            )
+            close()
+        }
+
+        val db = helper.runMigrationsAndValidate(
+            TEST_DB, 3, true,
+            AppDatabase.MIGRATION_1_2, AppDatabase.MIGRATION_2_3
+        )
+
+        db.query(
+            "SELECT name FROM sqlite_master WHERE type='index' AND name='index_transactions_to_account_id'"
+        ).use { cursor ->
+            assertThat(cursor.moveToFirst()).isTrue()
+            assertThat(cursor.getString(0)).isEqualTo("index_transactions_to_account_id")
+        }
+        db.query("SELECT to_account_id FROM transactions WHERE id = 1").use { cursor ->
+            cursor.moveToFirst()
+            assertThat(cursor.getLong(0)).isEqualTo(2L)
+        }
+        db.close()
+    }
+
     companion object {
         private const val TEST_DB = "migration-test.db"
     }

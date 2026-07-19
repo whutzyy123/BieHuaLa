@@ -102,7 +102,9 @@ fun SettingsScreen(
                     val r = event.result
                     val extras = buildList {
                         if (r.transactionsRestored > 0) add("恢复 ${r.transactionsRestored} 笔")
+                        if (r.transactionsSoftDeleted > 0) add("同步软删 ${r.transactionsSoftDeleted} 笔")
                         if (r.transactionsSkipped > 0) add("跳过 ${r.transactionsSkipped} 笔")
+                        if (r.categoriesSkipped > 0) add("跳过 ${r.categoriesSkipped} 个类别")
                     }.joinToString("，").let { if (it.isEmpty()) "" else "，$it" }
                     snackbarHostState.showSnackbar(
                         "已导入 ${r.transactionsInserted} 笔账，${r.accountsInserted} 个账户，${r.categoriesInserted} 个类别$extras"
@@ -149,16 +151,20 @@ fun SettingsScreen(
                     onClick = {
                         createDocumentLauncher.launch(backupViewModel.generateFileName())
                     },
-                    enabled = !backupState.isExporting && !backupState.isImporting
+                    enabled = !backupState.isBusy
                 )
                 HorizontalDivider()
                 SettingsItem(
                     text = "导入备份",
-                    subtitle = if (backupState.isImporting) "导入中…" else "从 JSON 文件合并",
+                    subtitle = when {
+                        backupState.isPreviewing -> "读取中…"
+                        backupState.isImporting -> "导入中…"
+                        else -> "从 JSON 文件合并"
+                    },
                     onClick = {
                         openDocumentLauncher.launch(arrayOf("application/json", "*/*"))
                     },
-                    enabled = !backupState.isExporting && !backupState.isImporting
+                    enabled = !backupState.isBusy
                 )
                 HorizontalDivider()
                 SettingsItem(
@@ -190,7 +196,7 @@ fun SettingsScreen(
                 SettingsItem(text = "隐私", subtitle = "完全本地 · 不联网 · 无追踪")
             }
 
-            if (backupState.isExporting || backupState.isImporting) {
+            if (backupState.isBusy) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -204,7 +210,11 @@ fun SettingsScreen(
                         )
                         Spacer(Modifier.padding(horizontal = 4.dp))
                         Text(
-                            text = if (backupState.isExporting) "导出中…" else "导入中…",
+                            text = when {
+                                backupState.isExporting -> "导出中…"
+                                backupState.isPreviewing -> "读取中…"
+                                else -> "导入中…"
+                            },
                             style = MaterialTheme.typography.bodySmall
                         )
                     }
@@ -266,7 +276,7 @@ private fun ImportPreviewDialog(
                 Text("• 交易 ${preview.transactionsCount} 笔")
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    text = "说明：同名账户/类别会复用；内容相同的交易去重，本地已软删的会恢复。",
+                    text = "说明：同名账户/类别会复用；期初余额仅在本地为 0 时采用备份。交易按内容去重：本地软删+备份未删则恢复；备份已软删则同步软删。",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

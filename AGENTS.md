@@ -26,15 +26,14 @@
 
 ## 3. 当前状态
 
-✅ **v0.3.0 — 审查报告全量修复完成**
+✅ **v0.3.1 — 残余缺陷修复完成**
 
-主路径可用 + 备份软删重导 / 回收站批量删除 / 列表错误反馈等已落地。分享 APK 见 [`RELEASE_NOTES_v0.3.0.md`](./RELEASE_NOTES_v0.3.0.md)。
+主路径可用；v0.3.0 审查修复 + v0.3.1 备份 deletedAt 矩阵 / 期初策略 / 连点保存等已落地。分享 APK 见 [`RELEASE_NOTES_v0.3.1.md`](./RELEASE_NOTES_v0.3.1.md)。
 
-**v0.3.0 关键变更**：
-- 备份 merge：fingerprint 不含 deletedAt，命中软删则 restore
-- 回收站清空与过期清理改为单条 SQL；restore 校验行数
-- Bill / AllTransactions 软删失败 Snackbar；Settings 建账户入口收敛
-- Tab 子路由选中态；Record / IconColor UI 拆分
+**v0.3.1 关键变更**：
+- 备份 merge 按双方 deletedAt 决策（restore / softDelete / skip）
+- 同名账户期初仅本地为 0 时采用备份；记账 `onSave` 防双点
+- Room schema v3：`to_account_id` 索引
 
 后续改动前请先对照 [`docs/PRD.md`](./docs/PRD.md)、[`docs/REVIEW_REPORT.md`](./docs/REVIEW_REPORT.md)、[`docs/STRUCTURE.md`](./docs/STRUCTURE.md)、[`CHANGELOG.md`](./CHANGELOG.md)。
 
@@ -48,7 +47,7 @@
 | 时间单位 | epoch millis (Long) | 永不用 Date 直存 |
 | 交易 type | Kotlin 枚举（v0.2 升级） | `TransactionType` / `CategoryType`，由 Room `Converters` 互转 |
 | 备份格式 | JSON v1 | schemaVersion 不可破坏性升级；v0.2 schemaVersion 升级到 2（DB 字段不变） |
-| Room schema | v1 → v2（v0.2 升级） | `MIGRATION_1_2` 注册到 `DatabaseModule` |
+| Room schema | v1 → v2 → v3 | `MIGRATION_1_2` / `MIGRATION_2_3`（to_account_id 索引） |
 | 包名 | `com.biehuale.app` | 不可改 |
 | 隐私 | **不申请任何运行时权限** | 无 INTERNET、无 STORAGE、无 NOTIFICATION |
 | 备份方式 | SAF（Storage Access Framework） | 不需要存储权限 |
@@ -167,4 +166,4 @@ v0.2 测试套件（70+ 测试方法）：
 
 ---
 
-**最后更新**：2026-07-19（v0.3.0 审查报告全量修复完成）
+**最后更新**：2026-07-19（v0.3.1 残余缺陷修复完成）

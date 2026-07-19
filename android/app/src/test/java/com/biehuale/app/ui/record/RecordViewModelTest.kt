@@ -136,4 +136,58 @@ class RecordViewModelTest {
         advanceUntilIdle()
         assertThat(vm.uiState.value.selectedCategoryId).isEqualTo(2L)
     }
+
+    @Test
+    fun validate_rejectsZeroAmount() {
+        val result = RecordViewModel.validate(
+            RecordUiState(
+                amountDisplay = "0",
+                selectedAccountId = 10L,
+                selectedCategoryId = 1L,
+                accounts = accountsFlow.value
+            )
+        )
+        assertThat(result).isInstanceOf(RecordValidation.Error::class.java)
+        assertThat((result as RecordValidation.Error).message).contains("\u91d1\u989d")
+    }
+
+    @Test
+    fun validate_transfer_rejectsSameAccount() {
+        val accounts = listOf(
+            AccountEntity(
+                id = 10L, name = "A", icon = null, colorHex = null,
+                initialBalance = 0L, isArchived = false, createdAt = 1L, updatedAt = 1L
+            ),
+            AccountEntity(
+                id = 11L, name = "B", icon = null, colorHex = null,
+                initialBalance = 0L, isArchived = false, createdAt = 1L, updatedAt = 1L
+            )
+        )
+        val result = RecordViewModel.validate(
+            RecordUiState(
+                mode = RecordMode.TRANSFER,
+                amountDisplay = "10.00",
+                selectedAccountId = 10L,
+                toAccountId = 10L,
+                accounts = accounts
+            )
+        )
+        assertThat(result).isInstanceOf(RecordValidation.Error::class.java)
+        assertThat((result as RecordValidation.Error).message).contains("\u4e0d\u540c")
+    }
+
+    @Test
+    fun validate_transfer_requiresTwoAccounts() {
+        val result = RecordViewModel.validate(
+            RecordUiState(
+                mode = RecordMode.TRANSFER,
+                amountDisplay = "10.00",
+                selectedAccountId = 10L,
+                toAccountId = 11L,
+                accounts = accountsFlow.value // only 1 account
+            )
+        )
+        assertThat(result).isInstanceOf(RecordValidation.Error::class.java)
+        assertThat((result as RecordValidation.Error).message).contains("2")
+    }
 }

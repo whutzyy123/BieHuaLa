@@ -113,7 +113,7 @@ class BackupImporterTest {
     }
 
     @Test
-    fun merge_sameNameAccount_reusesId() = runTest {
+    fun merge_sameNameAccount_keepsNonZeroInitialBalance() = runTest {
         val existingId = accountRepo.create(name = "\u73b0\u91d1", initialBalance = 100_00L)
 
         val raw = """
@@ -136,9 +136,33 @@ class BackupImporterTest {
         val existing = accountRepo.getById(existingId)
         assertThat(existing).isNotNull()
         assertThat(existing?.name).isEqualTo("\u73b0\u91d1")
-        // 合并采用备份 initialBalance（换机恢复正确余额）
-        assertThat(existing?.initialBalance).isEqualTo(500_00L)
+        // 本地已非 0：保留本地期初
+        assertThat(existing?.initialBalance).isEqualTo(100_00L)
         assertThat(result.getOrNull()?.accountsInserted).isEqualTo(0)
+    }
+
+    @Test
+    fun merge_sameNameAccount_zeroLocal_takesBackupInitial() = runTest {
+        val existingId = accountRepo.create(name = "\u73b0\u91d1", initialBalance = 0L)
+
+        val raw = """
+            {
+              "schemaVersion": 1,
+              "appVersion": "0.1.0",
+              "exportedAt": "2026-07-19T00:00:00Z",
+              "accounts": [{
+                "id": 999, "name": "\u73b0\u91d1", "icon": "wallet", "color": "#2196F3",
+                "initialBalance": 50000, "isArchived": false,
+                "createdAt": 1000, "updatedAt": 1000
+              }],
+              "categories": [], "transactions": []
+            }
+        """.trimIndent()
+        importer.applyImport(importer.preview(writeToTempFile(raw)).getOrThrow()).getOrThrow()
+
+        val existing = accountRepo.getById(existingId)
+        assertThat(existing?.initialBalance).isEqualTo(500_00L)
+        assertThat(existing?.icon).isEqualTo("wallet")
     }
 
     @Test
@@ -274,6 +298,116 @@ class BackupImporterTest {
         assertThat(active.single().deletedAt).isNull()
         assertThat(accountRepo.getBalance(accId)).isEqualTo(70_00L)
         assertThat(db.transactionDao().getAllIncludingDeleted()).hasSize(1)
+    }
+
+    @Test
+    fun reimportSoftDeletedBackup_keepsInRecycleBin() = runTest {
+        val accId = accountRepo.create(name = "\u73b0\u91d1", initialBalance = 100_00L)
+        val catId = categoryRepo.create(name = "\u9910\u996e", type = CategoryType.EXPENSE)
+        val occurredAt = 1_700_000_000_100L
+        val deletedAt = 1_700_000_100_000L
+        val txId = transactionRepo.save(
+            TransactionEntity(
+                id = 0L,
+                amount = 20_00L,
+                type = TransactionType.EXPENSE,
+                categoryId = catId,
+                accountId = accId,
+                toAccountId = null,
+                description = "\u665a\u9910",
+                occurredAt = occurredAt,
+                createdAt = occurredAt,
+                updatedAt = occurredAt,
+                deletedAt = null
+            )
+        )
+        transactionRepo.softDelete(txId)
+        assertThat(accountRepo.getBalance(accId)).isEqualTo(100_00L)
+
+        val raw = """
+            {
+              "schemaVersion": 1,
+              "appVersion": "0.1.0",
+              "exportedAt": "2026-07-19T00:00:00Z",
+              "accounts": [{
+                "id": 1, "name": "\u73b0\u91d1", "icon": null, "color": null,
+                "initialBalance": 10000, "isArchived": false,
+                "createdAt": 1000, "updatedAt": 1000
+              }],
+              "categories": [{
+                "id": 1, "name": "\u9910\u996e", "icon": null, "color": null,
+                "type": "EXPENSE", "isBuiltin": true, "sortOrder": 1,
+                "isArchived": false, "createdAt": 1000, "updatedAt": 1000
+              }],
+              "transactions": [{
+                "id": 1, "amount": 2000, "type": "EXPENSE",
+                "categoryId": 1, "accountId": 1, "toAccountId": null,
+                "description": "\u665a\u9910", "occurredAt": $occurredAt,
+                "createdAt": $occurredAt, "updatedAt": $occurredAt, "deletedAt": $deletedAt
+              }]
+            }
+        """.trimIndent()
+
+        val result = importer.applyImport(importer.preview(writeToTempFile(raw)).getOrThrow()).getOrThrow()
+        assertThat(result.transactionsRestored).isEqualTo(0)
+        assertThat(result.transactionsInserted).isEqualTo(0)
+        assertThat(transactionRepo.observeAllActive().first()).isEmpty()
+        assertThat(transactionRepo.observeRecycleBin().first()).hasSize(1)
+        assertThat(accountRepo.getBalance(accId)).isEqualTo(100_00L)
+    }
+
+    @Test
+    fun reimportSoftDeletedBackup_softDeletesLocalActive() = runTest {
+        val accId = accountRepo.create(name = "\u73b0\u91d1", initialBalance = 100_00L)
+        val catId = categoryRepo.create(name = "\u9910\u996e", type = CategoryType.EXPENSE)
+        val occurredAt = 1_700_000_000_200L
+        val deletedAt = 1_700_000_200_000L
+        val txId = transactionRepo.save(
+            TransactionEntity(
+                id = 0L,
+                amount = 15_00L,
+                type = TransactionType.EXPENSE,
+                categoryId = catId,
+                accountId = accId,
+                toAccountId = null,
+                description = "\u5496\u5561",
+                occurredAt = occurredAt,
+                createdAt = occurredAt,
+                updatedAt = occurredAt,
+                deletedAt = null
+            )
+        )
+        assertThat(accountRepo.getBalance(accId)).isEqualTo(85_00L)
+
+        val raw = """
+            {
+              "schemaVersion": 1,
+              "appVersion": "0.1.0",
+              "exportedAt": "2026-07-19T00:00:00Z",
+              "accounts": [{
+                "id": 1, "name": "\u73b0\u91d1", "icon": null, "color": null,
+                "initialBalance": 10000, "isArchived": false,
+                "createdAt": 1000, "updatedAt": 1000
+              }],
+              "categories": [{
+                "id": 1, "name": "\u9910\u996e", "icon": null, "color": null,
+                "type": "EXPENSE", "isBuiltin": true, "sortOrder": 1,
+                "isArchived": false, "createdAt": 1000, "updatedAt": 1000
+              }],
+              "transactions": [{
+                "id": 1, "amount": 1500, "type": "EXPENSE",
+                "categoryId": 1, "accountId": 1, "toAccountId": null,
+                "description": "\u5496\u5561", "occurredAt": $occurredAt,
+                "createdAt": $occurredAt, "updatedAt": $occurredAt, "deletedAt": $deletedAt
+              }]
+            }
+        """.trimIndent()
+
+        val result = importer.applyImport(importer.preview(writeToTempFile(raw)).getOrThrow()).getOrThrow()
+        assertThat(result.transactionsSoftDeleted).isEqualTo(1)
+        assertThat(transactionRepo.observeAllActive().first()).isEmpty()
+        assertThat(transactionRepo.getById(txId)?.deletedAt).isNotNull()
+        assertThat(accountRepo.getBalance(accId)).isEqualTo(100_00L)
     }
 
     private fun writeToTempFile(content: String): android.net.Uri {
