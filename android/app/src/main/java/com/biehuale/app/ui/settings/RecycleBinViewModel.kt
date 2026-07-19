@@ -57,8 +57,11 @@ class RecycleBinViewModel @Inject constructor(
     fun restore(id: Long) {
         viewModelScope.launch {
             try {
-                transactionRepository.restore(id)
-                _events.emit(RecycleBinEvent.Message("已恢复"))
+                if (transactionRepository.restore(id)) {
+                    _events.emit(RecycleBinEvent.Message("已恢复"))
+                } else {
+                    _events.emit(RecycleBinEvent.Error("恢复失败：记录不存在或已不在回收站"))
+                }
             } catch (e: Exception) {
                 _events.emit(RecycleBinEvent.Error(e.message ?: "恢复失败"))
             }
@@ -79,8 +82,7 @@ class RecycleBinViewModel @Inject constructor(
     fun emptyBin() {
         viewModelScope.launch {
             try {
-                val items = uiState.value.items
-                items.forEach { transactionRepository.hardDelete(it.transaction.id) }
+                transactionRepository.emptyBin()
                 _events.emit(RecycleBinEvent.Message("回收站已清空"))
             } catch (e: Exception) {
                 _events.emit(RecycleBinEvent.Error(e.message ?: "清空失败"))

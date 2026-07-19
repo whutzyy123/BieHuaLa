@@ -61,7 +61,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.biehuale.app.data.db.entity.CategoryEntity
 import com.biehuale.app.domain.model.CategoryType
+import com.biehuale.app.ui.common.IconColorPickerSection
 import com.biehuale.app.ui.common.IconColorPresets
+import com.biehuale.app.ui.common.parseColorOrDefault
 import com.biehuale.app.ui.theme.BieHuaLeTheme
 
 /**
@@ -396,33 +398,13 @@ private fun CategoryEditDialog(
                         )
                     }
                 }
-                Text("颜色", style = MaterialTheme.typography.labelMedium)
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    IconColorPresets.COLORS.forEach { c ->
-                        val selected = c.equals(colorHex, ignoreCase = true)
-                        Box(
-                            modifier = Modifier
-                                .size(28.dp)
-                                .clip(CircleShape)
-                                .background(parseColorOrDefault(c, MaterialTheme.colorScheme.primary))
-                                .clickable { colorHex = c }
-                                .then(
-                                    if (selected) Modifier.border(2.dp, MaterialTheme.colorScheme.onSurface, CircleShape)
-                                    else Modifier
-                                )
-                        )
-                    }
-                }
-                Text("图标 key：$icon", style = MaterialTheme.typography.labelMedium)
-                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    IconColorPresets.CATEGORY_ICONS.take(6).forEach { key ->
-                        FilterChip(
-                            selected = icon == key,
-                            onClick = { icon = key },
-                            label = { Text(key.take(4), style = MaterialTheme.typography.labelSmall) }
-                        )
-                    }
-                }
+                IconColorPickerSection(
+                    colorHex = colorHex,
+                    onColorChange = { colorHex = it },
+                    icon = icon,
+                    onIconChange = { icon = it },
+                    icons = IconColorPresets.CATEGORY_ICONS.take(6)
+                )
             }
         },
         confirmButton = {
@@ -436,12 +418,6 @@ private fun CategoryEditDialog(
             }
         }
     )
-}
-
-private fun parseColorOrDefault(hex: String?, default: Color): Color = try {
-    if (hex.isNullOrBlank()) default else Color(android.graphics.Color.parseColor(hex))
-} catch (_: Exception) {
-    default
 }
 
 @Preview(showBackground = true)

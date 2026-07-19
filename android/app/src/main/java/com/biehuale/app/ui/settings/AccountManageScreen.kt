@@ -64,7 +64,9 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.biehuale.app.data.db.entity.AccountEntity
+import com.biehuale.app.ui.common.IconColorPickerSection
 import com.biehuale.app.ui.common.IconColorPresets
+import com.biehuale.app.ui.common.parseColorOrDefault
 import com.biehuale.app.ui.theme.BieHuaLeTheme
 import com.biehuale.app.ui.theme.MoneyFontFamily
 import com.biehuale.app.util.Money.toDisplayString
@@ -357,34 +359,13 @@ private fun AccountEditDialog(
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier.fillMaxWidth()
                 )
-                Text("颜色", style = MaterialTheme.typography.labelMedium)
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    IconColorPresets.COLORS.forEach { c ->
-                        val selected = c.equals(colorHex, ignoreCase = true)
-                        Box(
-                            modifier = Modifier
-                                .size(28.dp)
-                                .clip(CircleShape)
-                                .background(parseColorOrDefault(c, MaterialTheme.colorScheme.primary))
-                                .clickable { colorHex = c }
-                                .then(
-                                    if (selected) {
-                                        Modifier.border(2.dp, MaterialTheme.colorScheme.onSurface, CircleShape)
-                                    } else Modifier
-                                )
-                        )
-                    }
-                }
-                Text("图标：$icon", style = MaterialTheme.typography.labelMedium)
-                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    IconColorPresets.ACCOUNT_ICONS.forEach { key ->
-                        FilterChip(
-                            selected = icon == key,
-                            onClick = { icon = key },
-                            label = { Text(key, style = MaterialTheme.typography.labelSmall) }
-                        )
-                    }
-                }
+                IconColorPickerSection(
+                    colorHex = colorHex,
+                    onColorChange = { colorHex = it },
+                    icon = icon,
+                    onIconChange = { icon = it },
+                    icons = IconColorPresets.ACCOUNT_ICONS
+                )
             }
         },
         confirmButton = {
@@ -426,15 +407,6 @@ private fun EmptyState(onCreate: () -> Unit) {
             )
         }
     }
-}
-
-/**
- * 解析 hex 颜色，失败则返回默认
- */
-private fun parseColorOrDefault(hex: String?, default: Color): Color = try {
-    if (hex.isNullOrBlank()) default else Color(android.graphics.Color.parseColor(hex))
-} catch (e: Exception) {
-    default
 }
 
 @Preview(showBackground = true)

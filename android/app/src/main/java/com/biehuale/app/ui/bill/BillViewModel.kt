@@ -12,9 +12,12 @@ import com.biehuale.app.data.repository.CategoryRepository
 import com.biehuale.app.data.repository.TransactionRepository
 import com.biehuale.app.domain.model.TransactionType
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
@@ -35,6 +38,9 @@ class BillViewModel @Inject constructor(
     categoryRepository: CategoryRepository,
     accountRepository: AccountRepository
 ) : ViewModel() {
+
+    private val _events = MutableSharedFlow<BillEvent>(extraBufferCapacity = 1)
+    val events: SharedFlow<BillEvent> = _events.asSharedFlow()
 
     private val _filter = MutableStateFlow(BillFilter())
     val filter: StateFlow<BillFilter> = _filter.asStateFlow()
@@ -152,11 +158,15 @@ class BillViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 transactionRepository.softDelete(id)
-            } catch (_: Exception) {
-                // 列表会通过 Flow 自动 refresh
+            } catch (e: Exception) {
+                _events.emit(BillEvent.Error("删除失败：${e.message ?: "未知错误"}"))
             }
         }
     }
+}
+
+sealed interface BillEvent {
+    data class Error(val message: String) : BillEvent
 }
 
 enum class TrendGranularity {

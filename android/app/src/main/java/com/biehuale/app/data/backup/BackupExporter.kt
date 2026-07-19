@@ -42,6 +42,7 @@ class BackupExporter @Inject constructor(
     }
 
     suspend fun export(uri: Uri): Result<Unit> = runCatching {
+        // 读事务：多表一致快照；序列化与写文件在块外，避免长时间持锁
         val backup = database.withTransaction {
             val accounts = accountRepository.observeAll().first()
             val categories = categoryRepository.observeAll().first()

@@ -16,16 +16,12 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Brightness6
-import androidx.compose.material.icons.filled.CloudDownload
-import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.LightMode
-import androidx.compose.material.icons.filled.Restore
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -34,7 +30,6 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
@@ -48,14 +43,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.biehuale.app.data.preferences.ThemeMode
 import com.biehuale.app.ui.theme.BieHuaLeTheme
-import com.biehuale.app.util.Money.toDisplayString
 
 /**
  * 设置 Tab - Screen
@@ -82,7 +75,6 @@ fun SettingsScreen(
     val themeMode by appearanceViewModel.themeMode.collectAsStateWithLifecycle()
 
     val snackbarHostState = remember { SnackbarHostState() }
-    var showCreateDialog by remember { mutableStateOf(false) }
     var showImportPreview by remember { mutableStateOf(false) }
     var showThemeDialog by remember { mutableStateOf(false) }
 
@@ -102,31 +94,18 @@ fun SettingsScreen(
         }
     }
 
-    // 监听事件
-    LaunchedEffect(Unit) {
-        settingsViewModel.events.collect { event ->
-            when (event) {
-                SettingsEvent.AccountCreated -> {
-                    showCreateDialog = false
-                    snackbarHostState.showSnackbar("账户已创建")
-                }
-                is SettingsEvent.Error -> snackbarHostState.showSnackbar(event.message)
-            }
-        }
-    }
     LaunchedEffect(Unit) {
         backupViewModel.events.collect { event ->
             when (event) {
                 BackupEvent.ExportSuccess -> snackbarHostState.showSnackbar("导出成功")
                 is BackupEvent.ImportSuccess -> {
                     val r = event.result
-                    val skipped = if (r.transactionsSkipped > 0) {
-                        "，跳过 ${r.transactionsSkipped} 笔"
-                    } else {
-                        ""
-                    }
+                    val extras = buildList {
+                        if (r.transactionsRestored > 0) add("恢复 ${r.transactionsRestored} 笔")
+                        if (r.transactionsSkipped > 0) add("跳过 ${r.transactionsSkipped} 笔")
+                    }.joinToString("，").let { if (it.isEmpty()) "" else "，$it" }
                     snackbarHostState.showSnackbar(
-                        "已导入 ${r.transactionsInserted} 笔账，${r.accountsInserted} 个账户，${r.categoriesInserted} 个类别$skipped"
+                        "已导入 ${r.transactionsInserted} 笔账，${r.accountsInserted} 个账户，${r.categoriesInserted} 个类别$extras"
                     )
                 }
                 is BackupEvent.Error -> snackbarHostState.showSnackbar(event.message)
@@ -152,12 +131,6 @@ fun SettingsScreen(
                     text = "管理账户",
                     subtitle = if (accounts.isEmpty()) "暂无账户，点这里新建" else "共 ${accounts.size} 个账户",
                     onClick = onNavigateToAccountManage
-                )
-                HorizontalDivider()
-                SettingsItem(
-                    text = "快速新建账户",
-                    subtitle = "名称 + 初始余额",
-                    onClick = { showCreateDialog = true }
                 )
             }
 
@@ -245,14 +218,6 @@ fun SettingsScreen(
         )
     }
 
-    // 新建账户对话框
-    if (showCreateDialog) {
-        CreateAccountDialog(
-            onDismiss = { showCreateDialog = false },
-            onConfirm = { name, balance -> settingsViewModel.createAccount(name, balance) }
-        )
-    }
-
     // 导入预览对话框
     backupState.pendingPreview?.let { preview ->
         if (showImportPreview) {
@@ -283,45 +248,6 @@ fun SettingsScreen(
 // ============================================================
 
 @Composable
-private fun CreateAccountDialog(
-    onDismiss: () -> Unit,
-    onConfirm: (name: String, initialBalanceYuan: String) -> Unit
-) {
-    var name by remember { mutableStateOf("") }
-    var balance by remember { mutableStateOf("0") }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("新建账户") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(
-                    value = name,
-                    onValueChange = { if (it.length <= 20) name = it },
-                    label = { Text("账户名") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
-                OutlinedTextField(
-                    value = balance,
-                    onValueChange = { balance = it },
-                    label = { Text("初始余额（元）") },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = { onConfirm(name, balance) }) { Text("创建") }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("取消") }
-        }
-    )
-}
-
-@Composable
 private fun ImportPreviewDialog(
     preview: com.biehuale.app.data.backup.ImportPreview,
     isImporting: Boolean,
@@ -340,7 +266,7 @@ private fun ImportPreviewDialog(
                 Text("• 交易 ${preview.transactionsCount} 笔")
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    text = "说明：同名账户/类别会复用现有；交易全部新增（id 重新生成）。",
+                    text = "说明：同名账户/类别会复用；内容相同的交易去重，本地已软删的会恢复。",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

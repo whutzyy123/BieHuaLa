@@ -23,8 +23,8 @@ android {
         applicationId = "com.biehuale.app"
         minSdk = 24
         targetSdk = 35
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = 2
+        versionName = "0.3.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables { useSupportLibrary = true }
@@ -170,7 +170,6 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kotlinx.datetime)
 
-    // ---------- Charts ----------
     // ---------- Unit Test ----------
     testImplementation(libs.junit5.jupiter)
     testImplementation(libs.junit5.jupiter.params)
@@ -187,7 +186,6 @@ dependencies {
 
     // ---------- Android Test ----------
     androidTestImplementation(libs.androidx.test.ext.junit)
-    androidTestImplementation(libs.androidx.test.espresso.core)
     androidTestImplementation(libs.androidx.test.core)
     androidTestImplementation(libs.androidx.room.testing)
     androidTestImplementation(libs.truth)

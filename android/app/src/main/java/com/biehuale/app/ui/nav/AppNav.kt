@@ -230,11 +230,31 @@ private fun RowScope.bhlTabItem(
     currentRoute: String?,
     onNavigate: (String) -> Unit
 ) {
-    val selected = currentRoute == route
+    val selected = isTabSelected(route, currentRoute)
     NavigationBarItem(
         selected = selected,
         onClick = { onNavigate(route) },
         icon = { Icon(icon, contentDescription = label) },
         label = { Text(label) }
     )
+}
+
+/** 子路由仍高亮所属主 Tab（详情 / 全部流水 / 设置子页等） */
+private fun isTabSelected(tabRoute: String, currentRoute: String?): Boolean {
+    if (currentRoute == null) return false
+    return when (tabRoute) {
+        Destinations.BILL ->
+            currentRoute == Destinations.BILL ||
+                currentRoute == Destinations.ALL_TRANSACTIONS ||
+                currentRoute.startsWith("transaction-detail")
+        Destinations.RECORD ->
+            currentRoute == Destinations.RECORD ||
+                currentRoute.startsWith("record-edit")
+        Destinations.SETTINGS ->
+            currentRoute == Destinations.SETTINGS ||
+                currentRoute == Destinations.ACCOUNT_MANAGE ||
+                currentRoute == Destinations.CATEGORY_MANAGE ||
+                currentRoute == Destinations.RECYCLE_BIN
+        else -> currentRoute == tabRoute
+    }
 }

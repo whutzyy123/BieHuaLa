@@ -7,6 +7,33 @@
 
 ---
 
+## [0.3.0] - 2026-07-19
+
+**第一性原理审查修复**（[`docs/REVIEW_REPORT.md`](./docs/REVIEW_REPORT.md) / [RELEASE_NOTES_v0.3.0.md](./RELEASE_NOTES_v0.3.0.md)）。
+
+### Fixed
+
+- **备份 merge**：fingerprint 不含 `deletedAt`；软删后重导同内容交易会 **restore**，不再插入重复活跃行导致余额虚高
+- **回收站清空 / 过期清理**：改为单条 SQL 批量硬删（原子）
+- **restore**：DAO 返回行数；无效 id 不再提示「已恢复」
+- **列表软删**：Bill / AllTransactions 失败时 Snackbar 反馈
+- **CleanupScheduler.runOnce**：`enqueueUniqueWork` + KEEP，避免冷启动堆任务
+
+### Changed
+
+- Settings 去掉「快速新建账户」，统一走账户管理页
+- `RecordViewModel.onSave` 抽 `validate()`；Record 表单组件拆到 `ui/record/components`
+- 账户/类别编辑复用 `IconColorPickerSection`
+- 底部 Tab 在子路由（详情 / 全部流水 / 设置子页）仍高亮所属主 Tab
+- 删除未使用的 `searchByDescription` DAO 路径；导出读事务 KDoc 标明快照意图
+- `versionName` → `0.3.0`（versionCode 2）
+
+### Tests
+
+- 软删后重导备份用例；跨年周分桶用例
+
+---
+
 ## [0.2.0] - 2026-07-19
 
 **v0.1.0 产品方向审查修复**。详见 [`docs/AUDIT_REPORT.md`](./docs/AUDIT_REPORT.md) / [`docs/AUDIT_FIX_REPORT.md`](./docs/AUDIT_FIX_REPORT.md) / [RELEASE_NOTES_v0.2.0.md](./RELEASE_NOTES_v0.2.0.md)。

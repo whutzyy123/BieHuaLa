@@ -4,11 +4,14 @@ import androidx.core.net.toUri
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.biehuale.app.data.db.AppDatabase
+import com.biehuale.app.data.db.entity.TransactionEntity
 import com.biehuale.app.data.repository.AccountRepository
 import com.biehuale.app.data.repository.CategoryRepository
 import com.biehuale.app.data.repository.TransactionRepository
 import com.biehuale.app.domain.model.CategoryType
+import com.biehuale.app.domain.model.TransactionType
 import com.google.common.truth.Truth.assertThat
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Before
@@ -207,6 +210,70 @@ class BackupImporterTest {
         assertThat(result.getOrNull()?.transactionsInserted).isEqualTo(2)
 
         assertThat(accountRepo.getBalance(accId)).isEqualTo(-80_00L)
+    }
+
+    @Test
+    fun reimportAfterSoftDelete_restoresWithoutDuplicate() = runTest {
+        val accId = accountRepo.create(name = "\u73b0\u91d1", initialBalance = 100_00L)
+        val catId = categoryRepo.create(name = "\u9910\u996e", type = CategoryType.EXPENSE)
+        val occurredAt = 1_700_000_000_000L
+        val txId = transactionRepo.save(
+            TransactionEntity(
+                id = 0L,
+                amount = 30_00L,
+                type = TransactionType.EXPENSE,
+                categoryId = catId,
+                accountId = accId,
+                toAccountId = null,
+                description = "\u5348\u9910",
+                occurredAt = occurredAt,
+                createdAt = occurredAt,
+                updatedAt = occurredAt,
+                deletedAt = null
+            )
+        )
+        assertThat(accountRepo.getBalance(accId)).isEqualTo(70_00L)
+
+        val raw = """
+            {
+              "schemaVersion": 1,
+              "appVersion": "0.1.0",
+              "exportedAt": "2026-07-19T00:00:00Z",
+              "accounts": [{
+                "id": 1, "name": "\u73b0\u91d1", "icon": null, "color": null,
+                "initialBalance": 10000, "isArchived": false,
+                "createdAt": 1000, "updatedAt": 1000
+              }],
+              "categories": [{
+                "id": 1, "name": "\u9910\u996e", "icon": null, "color": null,
+                "type": "EXPENSE", "isBuiltin": true, "sortOrder": 1,
+                "isArchived": false, "createdAt": 1000, "updatedAt": 1000
+              }],
+              "transactions": [{
+                "id": 1, "amount": 3000, "type": "EXPENSE",
+                "categoryId": 1, "accountId": 1, "toAccountId": null,
+                "description": "\u5348\u9910", "occurredAt": $occurredAt,
+                "createdAt": $occurredAt, "updatedAt": $occurredAt, "deletedAt": null
+              }]
+            }
+        """.trimIndent()
+
+        transactionRepo.softDelete(txId)
+        assertThat(accountRepo.getBalance(accId)).isEqualTo(100_00L)
+        assertThat(transactionRepo.observeAllActive().first()).isEmpty()
+
+        val result = importer.applyImport(importer.preview(writeToTempFile(raw)).getOrThrow())
+        assertThat(result.isSuccess).isTrue()
+        val importResult = result.getOrThrow()
+        assertThat(importResult.transactionsInserted).isEqualTo(0)
+        assertThat(importResult.transactionsRestored).isEqualTo(1)
+
+        val active = transactionRepo.observeAllActive().first()
+        assertThat(active).hasSize(1)
+        assertThat(active.single().id).isEqualTo(txId)
+        assertThat(active.single().deletedAt).isNull()
+        assertThat(accountRepo.getBalance(accId)).isEqualTo(70_00L)
+        assertThat(db.transactionDao().getAllIncludingDeleted()).hasSize(1)
     }
 
     private fun writeToTempFile(content: String): android.net.Uri {

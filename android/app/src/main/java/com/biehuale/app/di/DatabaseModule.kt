@@ -26,9 +26,8 @@ import javax.inject.Singleton
  *  - 3 个 DAO 各自单例（Room 内部已单例管理，加 @Singleton 更显式）
  *
  * Seed 策略：
- *  - onCreate：首次创建数据库时插入 15 个内置类别
- *  - 用 CoroutineScope 异步执行（Room callback 是同步的，但 IO 操作可以切到 IO dispatcher）
- *  - 用 SupervisorJob 避免单个失败影响整体
+ *  - onCreate：首次创建数据库时同步插入内置类别（15 条 INSERT，通常 < 10ms）
+ *  - 不用 CoroutineScope：Room Callback.onCreate 本身在 DB 打开路径上同步执行
  *
  * 详见 docs/DEV_PLAN.md §4 Task 1.4 + §4 Task 1.5 + §4 Task 1.6
  */

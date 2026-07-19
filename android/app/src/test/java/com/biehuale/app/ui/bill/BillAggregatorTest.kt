@@ -137,6 +137,28 @@ class BillAggregatorTest {
     }
 
     @Test
+    fun trend_week_crossYear_dec31AndJan1_sameOrAdjacentMondayBuckets() {
+        // 2025-12-31 周三、2026-01-01 周四 → 同属以 2025-12-29（周一）起的一周
+        val dec31 = localDay(2025, 12, 31, 15, 0)
+        val jan1 = localDay(2026, 1, 1, 10, 0)
+        val start = localDay(2025, 12, 29, 0, 0)
+        val endExclusive = localDay(2026, 1, 12, 0, 0)
+        val expenses = listOf(
+            tx(1, 10_00L, TransactionType.EXPENSE, 1L, 10L, null, dec31),
+            tx(2, 20_00L, TransactionType.EXPENSE, 1L, 10L, null, jan1)
+        )
+        val week = BillAggregator.buildLineSeries(
+            expenses, start, endExclusive, TrendGranularity.WEEK
+        )
+        assertThat(week.sumOf { it.totalCents }).isEqualTo(30_00L)
+        val nonEmpty = week.filter { it.totalCents > 0 }
+        assertThat(nonEmpty).hasSize(1)
+        assertThat(nonEmpty.single().totalCents).isEqualTo(30_00L)
+        val bucketCal = Calendar.getInstance().apply { timeInMillis = nonEmpty.single().dayStart }
+        assertThat(bucketCal.get(Calendar.DAY_OF_WEEK)).isEqualTo(Calendar.MONDAY)
+    }
+
+    @Test
     fun utcPickerMillis_toLocalDayStart() {
         val utc = Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply {
             set(2026, Calendar.JUNE, 15, 0, 0, 0)

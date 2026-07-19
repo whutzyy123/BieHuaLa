@@ -24,6 +24,11 @@ import javax.inject.Singleton
  * 详见 docs/PRD.md §10.1 / §10.2
  *
  * v0.2：DTO 字段保持 String（与历史 v1 JSON 兼容），导入时再转 enum 写入 entity。
+ *
+ * Merge 交易语义（fingerprint 不含 deletedAt）：
+ * - 无匹配 → insert
+ * - 匹配活跃行 → skip（去重）
+ * - 匹配软删行 → restore（导出后软删再导入可「复活」，避免重复记账）
  */
 @Singleton
 class BackupImporter @Inject constructor(
@@ -196,11 +201,19 @@ class BackupImporter @Inject constructor(
             categoryIdMap[catDto.id] = newId
         }
 
-        val existingTx = transactionDao.getAllIncludingDeleted()
-        val fingerprints = existingTx.map { fingerprint(it) }.toMutableSet()
+        // fingerprint → 本地行；同指纹优先保留软删行，便于 restore
+        val existingByFp = linkedMapOf<String, TransactionEntity>()
+        for (tx in transactionDao.getAllIncludingDeleted()) {
+            val fp = fingerprint(tx)
+            val prev = existingByFp[fp]
+            if (prev == null || (prev.deletedAt == null && tx.deletedAt != null)) {
+                existingByFp[fp] = tx
+            }
+        }
 
         val toInsert = mutableListOf<TransactionEntity>()
         var skipped = 0
+        var restored = 0
 
         for (txDto in backup.transactions) {
             val txType = TransactionType.fromOrNull(txDto.type)
@@ -248,11 +261,18 @@ class BackupImporter @Inject constructor(
                 deletedAt = txDto.deletedAt
             )
             val fp = fingerprint(entity)
-            if (fp in fingerprints) {
-                skipped++
+            val existing = existingByFp[fp]
+            if (existing != null) {
+                if (existing.deletedAt != null) {
+                    transactionDao.restore(existing.id, now)
+                    existingByFp[fp] = existing.copy(deletedAt = null, updatedAt = now)
+                    restored++
+                } else {
+                    skipped++
+                }
                 continue
             }
-            fingerprints.add(fp)
+            existingByFp[fp] = entity
             toInsert.add(entity)
         }
 
@@ -264,6 +284,7 @@ class BackupImporter @Inject constructor(
             accountsInserted = accountsInserted,
             categoriesInserted = categoriesInserted,
             transactionsInserted = toInsert.size,
+            transactionsRestored = restored,
             transactionsSkipped = skipped + categoriesSkipped
         )
     }
@@ -288,6 +309,7 @@ class BackupImporter @Inject constructor(
     }
 
     companion object {
+        /** 内容指纹；不含 deletedAt，使软删后重导可命中并 restore。 */
         fun fingerprint(tx: TransactionEntity): String =
             listOf(
                 tx.amount.toString(),
@@ -296,8 +318,7 @@ class BackupImporter @Inject constructor(
                 (tx.toAccountId ?: -1L).toString(),
                 (tx.categoryId ?: -1L).toString(),
                 tx.occurredAt.toString(),
-                tx.description.orEmpty(),
-                (tx.deletedAt != null).toString()
+                tx.description.orEmpty()
             ).joinToString("|")
     }
 }

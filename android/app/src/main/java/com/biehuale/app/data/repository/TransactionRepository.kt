@@ -80,13 +80,7 @@ class TransactionRepository @Inject constructor(
     ): Flow<List<DailyTotal>> =
         transactionDao.observeDailyExpense(startDayMillis, endDayMillis, dayInMillis)
 
-    // ---------- 搜索 / 筛选 ----------
-
-    /**
-     * 按 description 模糊搜索
-     */
-    fun searchByDescription(keyword: String): Flow<List<TransactionEntity>> =
-        transactionDao.searchByDescription(keyword)
+    // ---------- 筛选 ----------
 
     /**
      * 按账户观察
@@ -166,26 +160,30 @@ class TransactionRepository @Inject constructor(
     }
 
     /**
-     * 从回收站恢复
+     * 从回收站恢复。成功（至少更新 1 行）返回 true。
      */
-    suspend fun restore(id: Long) {
+    suspend fun restore(id: Long): Boolean {
         val now = System.currentTimeMillis()
-        transactionDao.restore(id, now)
+        return transactionDao.restore(id, now) > 0
     }
 
     /**
-     * 永久删除（回收站 30 天清理用）
+     * 永久删除单笔
      */
     suspend fun hardDelete(id: Long) {
         transactionDao.hardDelete(id)
     }
 
+    /** 清空回收站（单条 SQL） */
+    suspend fun emptyBin() {
+        transactionDao.hardDeleteAllSoftDeleted()
+    }
+
     /**
-     * 30 天过期清理（WorkManager 调用）
+     * 30 天过期清理（WorkManager 调用，单条 SQL）
      */
     suspend fun cleanupExpired(thresholdMillis: Long) {
-        val expired = transactionDao.getExpiredForCleanup(thresholdMillis)
-        expired.forEach { transactionDao.hardDelete(it.id) }
+        transactionDao.hardDeleteExpired(thresholdMillis)
     }
 
     companion object {

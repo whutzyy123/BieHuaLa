@@ -200,48 +200,12 @@ class RecordViewModel @Inject constructor(
     fun onSave() {
         val state = _uiState.value
         if (state.isSaving) return
-        if (state.accounts.size < if (state.mode == RecordMode.TRANSFER) 2 else 1) {
-            val need = if (state.mode == RecordMode.TRANSFER) "至少 2 个" else "1 个"
-            _events.tryEmit(RecordEvent.Error("请先到设置新建账户（$need）"))
+        val validated = validate(state)
+        if (validated is RecordValidation.Error) {
+            _events.tryEmit(RecordEvent.Error(validated.message))
             return
         }
-        val cents = Money.parseToCents(state.amountDisplay)
-        if (cents == null || cents <= 0L) {
-            _events.tryEmit(RecordEvent.Error("请输入有效金额"))
-            return
-        }
-        if (cents > Money.MAX_CENTS) {
-            _events.tryEmit(RecordEvent.Error("金额超出上限"))
-            return
-        }
-
-        val accountId = state.selectedAccountId
-        if (accountId == null) {
-            val label = if (state.mode == RecordMode.TRANSFER) "转出账户" else "账户"
-            _events.tryEmit(RecordEvent.Error("请选择$label"))
-            return
-        }
-
-        val categoryId = when (state.mode) {
-            RecordMode.TRANSFER -> null
-            else -> state.selectedCategoryId ?: run {
-                _events.tryEmit(RecordEvent.Error("请选择类别"))
-                return
-            }
-        }
-
-        val toAccountId = when (state.mode) {
-            RecordMode.TRANSFER -> state.toAccountId ?: run {
-                _events.tryEmit(RecordEvent.Error("请选择转入账户"))
-                return
-            }
-            else -> null
-        }
-
-        if (state.mode == RecordMode.TRANSFER && toAccountId == accountId) {
-            _events.tryEmit(RecordEvent.Error("转入账户必须与转出不同"))
-            return
-        }
+        val ok = validated as RecordValidation.Ok
 
         viewModelScope.launch {
             val wasEditing = editingId.value != null
@@ -261,11 +225,11 @@ class RecordViewModel @Inject constructor(
                         throw IllegalStateException("\u5df2\u5220\u9664\u7684\u8bb0\u5f55\u4e0d\u53ef\u7f16\u8f91\uff0c\u8bf7\u5148\u5728\u56de\u6536\u7ad9\u6062\u590d")
                     }
                     existing.copy(
-                        amount = cents,
+                        amount = ok.cents,
                         type = type,
-                        categoryId = categoryId,
-                        accountId = accountId,
-                        toAccountId = toAccountId,
+                        categoryId = ok.categoryId,
+                        accountId = ok.accountId,
+                        toAccountId = ok.toAccountId,
                         description = state.description.takeIf { it.isNotBlank() },
                         occurredAt = state.occurredAt,
                         deletedAt = null
@@ -273,11 +237,11 @@ class RecordViewModel @Inject constructor(
                 } else {
                     TransactionEntity(
                         id = 0L,
-                        amount = cents,
+                        amount = ok.cents,
                         type = type,
-                        categoryId = categoryId,
-                        accountId = accountId,
-                        toAccountId = toAccountId,
+                        categoryId = ok.categoryId,
+                        accountId = ok.accountId,
+                        toAccountId = ok.toAccountId,
                         description = state.description.takeIf { it.isNotBlank() },
                         occurredAt = state.occurredAt,
                         createdAt = 0L,
@@ -305,7 +269,55 @@ class RecordViewModel @Inject constructor(
 
     companion object {
         const val MAX_DESCRIPTION = 200
+
+        internal fun validate(state: RecordUiState): RecordValidation {
+            if (state.accounts.size < if (state.mode == RecordMode.TRANSFER) 2 else 1) {
+                val need = if (state.mode == RecordMode.TRANSFER) "至少 2 个" else "1 个"
+                return RecordValidation.Error("请先到设置新建账户（$need）")
+            }
+            val cents = Money.parseToCents(state.amountDisplay)
+            if (cents == null || cents <= 0L) {
+                return RecordValidation.Error("请输入有效金额")
+            }
+            if (cents > Money.MAX_CENTS) {
+                return RecordValidation.Error("金额超出上限")
+            }
+            val accountId = state.selectedAccountId
+                ?: return RecordValidation.Error(
+                    "请选择${if (state.mode == RecordMode.TRANSFER) "转出账户" else "账户"}"
+                )
+            val categoryId = when (state.mode) {
+                RecordMode.TRANSFER -> null
+                else -> state.selectedCategoryId
+                    ?: return RecordValidation.Error("请选择类别")
+            }
+            val toAccountId = when (state.mode) {
+                RecordMode.TRANSFER -> state.toAccountId
+                    ?: return RecordValidation.Error("请选择转入账户")
+                else -> null
+            }
+            if (state.mode == RecordMode.TRANSFER && toAccountId == accountId) {
+                return RecordValidation.Error("转入账户必须与转出不同")
+            }
+            return RecordValidation.Ok(
+                cents = cents,
+                accountId = accountId,
+                categoryId = categoryId,
+                toAccountId = toAccountId
+            )
+        }
     }
+}
+
+sealed interface RecordValidation {
+    data class Ok(
+        val cents: Long,
+        val accountId: Long,
+        val categoryId: Long?,
+        val toAccountId: Long?
+    ) : RecordValidation
+
+    data class Error(val message: String) : RecordValidation
 }
 
 enum class RecordMode { EXPENSE, INCOME, TRANSFER }

@@ -129,16 +129,6 @@ interface TransactionDao {
     """)
     fun observeByCategory(categoryId: Long): Flow<List<TransactionEntity>>
 
-    // ---------- 搜索 ----------
-
-    @Query("""
-        SELECT * FROM transactions
-        WHERE deleted_at IS NULL
-          AND description LIKE '%' || :keyword || '%'
-        ORDER BY occurred_at DESC
-    """)
-    fun searchByDescription(keyword: String): Flow<List<TransactionEntity>>
-
     // ---------- 回收站 ----------
 
     @Query("SELECT * FROM transactions WHERE deleted_at IS NOT NULL ORDER BY deleted_at DESC")
@@ -170,16 +160,38 @@ interface TransactionDao {
     suspend fun softDelete(id: Long, now: Long)
 
     /**
-     * 恢复：从回收站恢复
+     * 恢复：从回收站恢复。返回受影响行数（0 = 无此 id 或已非软删状态视 SQL 而定）。
      */
-    @Query("UPDATE transactions SET deleted_at = NULL, updated_at = :now WHERE id = :id")
-    suspend fun restore(id: Long, now: Long)
+    @Query(
+        """
+        UPDATE transactions
+        SET deleted_at = NULL, updated_at = :now
+        WHERE id = :id AND deleted_at IS NOT NULL
+        """
+    )
+    suspend fun restore(id: Long, now: Long): Int
 
     /**
-     * 永久删除（清理 30 天前的软删除项）
+     * 永久删除单笔
      */
     @Query("DELETE FROM transactions WHERE id = :id")
     suspend fun hardDelete(id: Long)
+
+    @Query("DELETE FROM transactions WHERE id IN (:ids)")
+    suspend fun hardDeleteIds(ids: List<Long>)
+
+    /** 清空回收站（单条 SQL，原子） */
+    @Query("DELETE FROM transactions WHERE deleted_at IS NOT NULL")
+    suspend fun hardDeleteAllSoftDeleted()
+
+    /** 清理过期软删（单条 SQL，原子） */
+    @Query(
+        """
+        DELETE FROM transactions
+        WHERE deleted_at IS NOT NULL AND deleted_at < :thresholdMillis
+        """
+    )
+    suspend fun hardDeleteExpired(thresholdMillis: Long)
 }
 
 /**

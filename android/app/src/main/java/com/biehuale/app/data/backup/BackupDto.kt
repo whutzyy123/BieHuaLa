@@ -81,6 +81,8 @@ data class ImportResult(
     val accountsInserted: Int = 0,
     val categoriesInserted: Int = 0,
     val transactionsInserted: Int = 0,
-    /** 校验失败、无法映射或指纹重复而跳过的交易数 */
+    /** 指纹命中本地软删行并已恢复的数量 */
+    val transactionsRestored: Int = 0,
+    /** 校验失败、无法映射或活跃指纹重复而跳过的交易数 */
     val transactionsSkipped: Int = 0
 )

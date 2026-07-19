@@ -19,22 +19,24 @@
 | PRD | [`docs/PRD.md`](./docs/PRD.md) | 做什么、为什么、范围边界 |
 | 开发计划 | [`docs/DEV_PLAN.md`](./docs/DEV_PLAN.md) | 5 个 phase、36 个 task、命名规范 |
 | 目录结构 | [`docs/STRUCTURE.md`](./docs/STRUCTURE.md) | 每个目录/文件是干什么的 |
-| 审查报告 | [`docs/AUDIT_REPORT.md`](./docs/AUDIT_REPORT.md) | v0.1.0 产品方向审查（含 P0/P1/P2/P3） |
-| 修复报告 | [`docs/AUDIT_FIX_REPORT.md`](./docs/AUDIT_FIX_REPORT.md) | v0.2.0 修复完成记录 |
+| 第一性原理审查 | [`docs/REVIEW_REPORT.md`](./docs/REVIEW_REPORT.md) | v0.3.0 全量审查与修复结论 |
+| 产品方向审查 | [`docs/AUDIT_REPORT.md`](./docs/AUDIT_REPORT.md) | v0.1.0 产品方向审查 |
+| 方向修复记录 | [`docs/AUDIT_FIX_REPORT.md`](./docs/AUDIT_FIX_REPORT.md) | v0.2.0 修复完成记录 |
 | 更新日志 | [`CHANGELOG.md`](./CHANGELOG.md) | 版本变更记录 |
 
 ## 3. 当前状态
 
-✅ **v0.2.0 — 产品方向审查修复完成**
+✅ **v0.3.0 — 审查报告全量修复完成**
 
-Phase 1–5 主路径已落地 + v0.2.0 审查修复完成。`assembleRelease` 可产出分享用 APK（见 [`RELEASE_NOTES_v0.2.0.md`](./RELEASE_NOTES_v0.2.0.md)）。
+主路径可用 + 备份软删重导 / 回收站批量删除 / 列表错误反馈等已落地。分享 APK 见 [`RELEASE_NOTES_v0.3.0.md`](./RELEASE_NOTES_v0.3.0.md)。
 
-**v0.2.0 关键变更**：
-- 底部 Tab 永远可见（PRD §4.2 对齐）
-- 新增 `AllTransactionsScreen` + 账单 Tab"最近 5 笔 + 查看全部"（PRD §4.1 对齐）
-- `TransactionType` / `CategoryType` Kotlin 枚举改造（PRD §5.3 对齐）+ Room schema v1→v2 Migration
+**v0.3.0 关键变更**：
+- 备份 merge：fingerprint 不含 deletedAt，命中软删则 restore
+- 回收站清空与过期清理改为单条 SQL；restore 校验行数
+- Bill / AllTransactions 软删失败 Snackbar；Settings 建账户入口收敛
+- Tab 子路由选中态；Record / IconColor UI 拆分
 
-后续改动前请先对照 [`docs/PRD.md`](./docs/PRD.md)、[`docs/STRUCTURE.md`](./docs/STRUCTURE.md)、[`CHANGELOG.md`](./CHANGELOG.md)，并在 [`docs/DEV_PLAN.md`](./docs/DEV_PLAN.md) 里登记 phase 实施记录。
+后续改动前请先对照 [`docs/PRD.md`](./docs/PRD.md)、[`docs/REVIEW_REPORT.md`](./docs/REVIEW_REPORT.md)、[`docs/STRUCTURE.md`](./docs/STRUCTURE.md)、[`CHANGELOG.md`](./CHANGELOG.md)。
 
 ## 4. 关键约束（不可变）
 
@@ -165,4 +167,4 @@ v0.2 测试套件（70+ 测试方法）：
 
 ---
 
-**最后更新**：2026-07-19（v0.2.0 产品方向审查修复完成）
+**最后更新**：2026-07-19（v0.3.0 审查报告全量修复完成）
