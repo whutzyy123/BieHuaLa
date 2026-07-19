@@ -7,6 +7,133 @@
 
 ---
 
+## [0.6.9] - 2026-07-20
+
+### Changed
+- 新增 `SectionPanel`：elevated 浅底圆角岛，账单 Hero/饼图/趋势/最近、记账表单、设置分组与管理/详情/全部流水轻量对齐
+- 区块间距统一 `space.md`；禁止行级 Card 墙与多阴影叠层（见 UI_DESIGN §3.3 / §6 / §7）
+- `versionName` → `0.6.9`（versionCode 17）
+
+## [0.6.8] - 2026-07-20
+
+### Changed
+- 导航转场对齐 AppMotion：主 Tab 120ms fade、二级页 200ms slide+fade（去掉 Navigation 默认 700ms）
+- 底栏切 Tab 改为单次 `navigate`+`popUpTo`；记账目录聚合 `flowOn(Default)`；账单 `contentSignature` 去抖
+- 键盘按下 70ms；模式字重即时；列表/设置行显式 bounded ripple
+- `versionName` → `0.6.8`（versionCode 16）
+
+## [0.6.7] - 2026-07-20
+
+### Removed
+- 未使用的 DAO/Repository API（账单已改内存聚合后的区间/饼图/趋势 SQL 透传；账户/类别 `restore` 与无调用方计数查询）
+- 空 Preview stub、`EmptyState.showBrand`、未用的 `RecordMode` 扩展
+- 根目录旧 `RELEASE_NOTES_*` 与已完成的审查/计划文档移入 [`docs/archive/`](./docs/archive/)
+
+### Changed
+- README / AGENTS / STRUCTURE 与现行 v0.6.x 对齐；`versionName` → `0.6.7`（versionCode 15）
+
+## [0.6.6] - 2026-07-20
+
+### Changed
+- 全局 UI 组件化：抽出 `SubScreenScaffold` / `CategoryIconCircle` / `LoadingState` / `ListSectionHeader` / `PrimaryButton` / `ManageListRow`；管理三屏、回收站、详情、全部流水改用统一壳
+- `SearchBar` / `FilterBottomSheet` 迁入 `ui/common/`；快速记账编辑字段收敛为 `LedgerField`
+- `versionName` → `0.6.6`（versionCode 14）
+
+## [0.6.5] - 2026-07-20
+
+### Added
+- 账单 Tab 次级行展示**总资产**（活跃账户余额合计）；点击打开分户明细 Sheet
+
+### Changed
+- `versionName` → `0.6.5`（versionCode 13）
+
+## [0.6.4] - 2026-07-20
+
+### Fixed
+- 账单空月不再误显示「还没有记账」；区分全库空 vs 区间空
+- 「本月流水」/ 饼图跳转带当前日期区间；「查看全部」仍为全历史
+- 支出/收入比例条改用 `支出÷收入`，并显示百分比
+- 饼图未选中时不再半透明；点击限制在环带
+
+### Changed
+- 自定义区间标题含年、标签「区间已花」；禁止切到未来月；单月隐藏趋势「月」粒度
+- 账单/全部流水账户含归档展示；`versionName` → `0.6.4`（versionCode 12）
+
+## [0.6.3] - 2026-07-19
+
+### Added
+- 转账可选**手续费**：转出扣全额，转入实收 `amount − fee`（例：转 500、费 1 → −500 / +499）
+- Room `transactions.fee`（分）+ Migration 5→6；备份 JSON `schemaVersion=2`
+
+### Changed
+- 转账表单预览随手续费更新到账金额；详情展示手续费与到账
+- `versionName` → `0.6.3`（versionCode 11）
+
+## [0.6.2] - 2026-07-19
+
+**性能**：点击跟手——记账键盘 / Flow 下沉 / 账户余额聚合。
+
+### Changed
+
+- 记账：去掉逐键金额 pulse；拆分 amount/canSave/form 订阅；键盘 `graphicsLayer` 反馈
+- 账单/流水：聚合与月分组 `flowOn(Default)` + `distinctUntilChanged`；搜索 debounce 150ms；列表仅软删 fadeOut
+- 账户管理：一次 SQL 聚合余额，去掉 N+1 `getBalance`
+- 备份导出/导入走 `Dispatchers.IO`
+- Room v5：`(account_id, deleted_at, type)` 索引
+- Hero 金额入场只播一次；设置外观区独立订阅
+- `versionName` → `0.6.2`（versionCode 10）
+
+---
+
+## [0.6.1] - 2026-07-19
+
+**快速记账**：设置预设模板，支出页下拉一点即记。
+
+### Added
+
+- Room v4 表 `quick_records`（类别 / 账户 / 金额分 / 说明）
+- 设置 →「管理快速记账」增删改
+- 记账支出页「快速记账」下拉，选中即落一笔 EXPENSE
+- `versionName` → `0.6.1`（versionCode 9）
+
+### Fixed
+
+- 归档类别/账户时同步清理依赖的快速记账模板
+- 记账保存：活跃账户/类别校验、`isSaving` 竞态与保存中锁定表单
+- `TransactionRepository.save`：金额上限 + 实体存在/未归档校验
+- 快速记账管理防连点；编辑失效 id 强制重选
+- 备份 JSON 仍不含 `quick_records`（刻意；重装/导入不恢复模板）
+
+---
+
+## [0.6.0] - 2026-07-19
+
+**Clarity Teal**：推翻雾青软萌，对齐主流记账「想用」体验。
+
+### Changed
+
+- 近白实色底；主色提亮 `#0B7A6A`；圆角 12 / 16 / 20
+- 类别矩阵：色圆 + 图标（`CategoryIconMap`）；管理页同步
+- 记账金额舞台去灰笼；可保存时主按钮实心青绿；空态主 CTA
+- 底栏选中青绿 container；LedgerField 用 muted 实底
+- `versionName` → `0.6.0`（versionCode 8）
+
+---
+
+## [0.5.0] - 2026-07-19
+
+**Mist Teal Soft Ledger**：软萌圆润雾青账本全量换皮。
+
+### Changed
+
+- 圆角上调（14 / 20 / 28）；自研 `BhlIcons` 替换 Material Filled 脸
+- `LedgerField` / `LedgerSheet` / `LedgerConfirm` 去 M3 露馅
+- 冷启动默认进入**记账** Tab；底栏选中软椭圆底
+- 空态简笔账本 + 品牌弱露出；纸感噪点微调
+- `versionName` → `0.5.0`（versionCode 7）
+
+---
+
 ## [0.4.2] - 2026-07-19
 
 **UX 交互减层**：账单只「看」、查历史进全部流水、长按编辑、保存后连记。
@@ -37,7 +164,7 @@
 
 ## [0.4.0] - 2026-07-19
 
-**Mist Teal Ledger UI 全量重构**（[`docs/UI_DESIGN.md`](./docs/UI_DESIGN.md) / [RELEASE_NOTES_v0.4.0.md](./RELEASE_NOTES_v0.4.0.md)）。
+**Mist Teal Ledger UI 全量重构**（[`docs/UI_DESIGN.md`](./docs/UI_DESIGN.md) / [archive/RELEASE_NOTES_v0.4.0.md](./docs/archive/RELEASE_NOTES_v0.4.0.md)）。
 
 ### Changed
 
@@ -54,7 +181,7 @@
 
 ## [0.3.1] - 2026-07-19
 
-**残余缺陷修复**（全量复盘后）。详见 [RELEASE_NOTES_v0.3.1.md](./RELEASE_NOTES_v0.3.1.md)。
+**残余缺陷修复**（全量复盘后）。详见 [archive/RELEASE_NOTES_v0.3.1.md](./docs/archive/RELEASE_NOTES_v0.3.1.md)。
 
 ### Fixed
 
@@ -74,7 +201,7 @@
 
 ## [0.3.0] - 2026-07-19
 
-**第一性原理审查修复**（[`docs/REVIEW_REPORT.md`](./docs/REVIEW_REPORT.md) / [RELEASE_NOTES_v0.3.0.md](./RELEASE_NOTES_v0.3.0.md)）。
+**第一性原理审查修复**（[`docs/archive/REVIEW_REPORT.md`](./docs/archive/REVIEW_REPORT.md) / [archive/RELEASE_NOTES_v0.3.0.md](./docs/archive/RELEASE_NOTES_v0.3.0.md)）。
 
 ### Fixed
 
@@ -101,7 +228,7 @@
 
 ## [0.2.0] - 2026-07-19
 
-**v0.1.0 产品方向审查修复**。详见 [`docs/AUDIT_REPORT.md`](./docs/AUDIT_REPORT.md) / [`docs/AUDIT_FIX_REPORT.md`](./docs/AUDIT_FIX_REPORT.md) / [RELEASE_NOTES_v0.2.0.md](./RELEASE_NOTES_v0.2.0.md)。
+**v0.1.0 产品方向审查修复**。详见 [`docs/archive/AUDIT_REPORT.md`](./docs/archive/AUDIT_REPORT.md) / [`docs/archive/AUDIT_FIX_REPORT.md`](./docs/archive/AUDIT_FIX_REPORT.md) / [archive/RELEASE_NOTES_v0.2.0.md](./docs/archive/RELEASE_NOTES_v0.2.0.md)。
 
 ### Changed（修复严重出入）
 
@@ -166,7 +293,7 @@
 
 ## [0.1.0] - 2026-07-19
 
-首个可分享安装包。**构建通过后可发给朋友试用**（个人分享；release 暂用 debug 签名）。详见 [RELEASE_NOTES_v0.1.0.md](./RELEASE_NOTES_v0.1.0.md)。
+首个可分享安装包。**构建通过后可发给朋友试用**（个人分享；release 暂用 debug 签名）。详见 [archive/RELEASE_NOTES_v0.1.0.md](./docs/archive/RELEASE_NOTES_v0.1.0.md)。
 
 ### Added
 

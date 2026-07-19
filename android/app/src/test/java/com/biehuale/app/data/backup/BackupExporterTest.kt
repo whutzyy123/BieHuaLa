@@ -41,9 +41,9 @@ class BackupExporterTest {
         db = Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java)
             .allowMainThreadQueries()
             .build()
-        accountRepo = AccountRepository(db.accountDao())
-        categoryRepo = CategoryRepository(db.categoryDao())
-        transactionRepo = TransactionRepository(db.transactionDao())
+        accountRepo = AccountRepository(db.accountDao(), db.quickRecordDao())
+        categoryRepo = CategoryRepository(db.categoryDao(), db.quickRecordDao())
+        transactionRepo = TransactionRepository(db.transactionDao(), db.accountDao(), db.categoryDao())
         exporter = BackupExporter(context, db, accountRepo, categoryRepo, transactionRepo)
         importer = BackupImporter(
             context = context,
@@ -115,7 +115,7 @@ class BackupExporterTest {
         val uri = writeToTempFile("schema_test.json")
         exporter.export(uri)
         val content = File(uri.path!!).readText()
-        assertThat(content).contains("\"schemaVersion\": 1")
+        assertThat(content).contains("\"schemaVersion\": 2")
     }
 
     @Test

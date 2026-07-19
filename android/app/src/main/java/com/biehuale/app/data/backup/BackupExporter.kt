@@ -103,6 +103,7 @@ fun TransactionEntity.toDto() = TransactionDto(
     categoryId = categoryId,
     accountId = accountId,
     toAccountId = toAccountId,
+    fee = fee,
     description = description,
     occurredAt = occurredAt,
     createdAt = createdAt,

@@ -8,25 +8,41 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Inbox
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.biehuale.app.ui.icons.BhlIcons
 import com.biehuale.app.ui.theme.AppSpacing
+
+@Composable
+fun LoadingState(
+    modifier: Modifier = Modifier,
+    message: String = "加载中…"
+) {
+    Box(
+        modifier = modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = message,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
 
 @Composable
 fun EmptyState(
     title: String,
     subtitle: String? = null,
-    icon: ImageVector = Icons.Filled.Inbox,
+    icon: ImageVector = BhlIcons.EmptyLedger,
     actionText: String? = null,
     onAction: (() -> Unit)? = null,
     modifier: Modifier = Modifier
@@ -43,10 +59,10 @@ fun EmptyState(
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                modifier = Modifier.size(64.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                modifier = Modifier.size(48.dp),
+                tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.75f)
             )
-            Spacer(modifier.height(AppSpacing.sm + AppSpacing.xs))
+            Spacer(modifier = Modifier.height(AppSpacing.md))
             Text(
                 text = title,
                 style = MaterialTheme.typography.titleLarge,
@@ -54,7 +70,7 @@ fun EmptyState(
                 textAlign = TextAlign.Center
             )
             if (subtitle != null) {
-                Spacer(modifier.height(AppSpacing.xs))
+                Spacer(modifier = Modifier.height(AppSpacing.xs))
                 Text(
                     text = subtitle,
                     style = MaterialTheme.typography.bodyMedium,
@@ -63,10 +79,13 @@ fun EmptyState(
                 )
             }
             if (actionText != null && onAction != null) {
-                Spacer(modifier.height(AppSpacing.md))
-                TextButton(onClick = onAction) {
-                    Text(actionText)
-                }
+                Spacer(modifier = Modifier.height(AppSpacing.lg))
+                PrimaryButton(
+                    text = actionText,
+                    onClick = onAction,
+                    fillMaxWidth = false,
+                    modifier = Modifier.widthIn(min = 160.dp)
+                )
             }
         }
     }

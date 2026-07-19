@@ -8,6 +8,7 @@ import com.biehuale.app.data.backup.BackupImporter
 import com.biehuale.app.data.backup.ImportPreview
 import com.biehuale.app.data.backup.ImportResult
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -15,6 +16,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 /**
@@ -37,7 +39,7 @@ class BackupViewModel @Inject constructor(
     fun export(uri: Uri) {
         viewModelScope.launch {
             _state.value = _state.value.copy(isExporting = true, lastError = null)
-            val result = backupExporter.export(uri)
+            val result = withContext(Dispatchers.IO) { backupExporter.export(uri) }
             _state.value = _state.value.copy(isExporting = false)
             result.onSuccess {
                 _events.emit(BackupEvent.ExportSuccess)
@@ -50,7 +52,7 @@ class BackupViewModel @Inject constructor(
     fun previewImport(uri: Uri) {
         viewModelScope.launch {
             _state.value = _state.value.copy(isPreviewing = true, lastError = null, pendingPreview = null)
-            val result = backupImporter.preview(uri)
+            val result = withContext(Dispatchers.IO) { backupImporter.preview(uri) }
             result.onSuccess { preview ->
                 _state.value = _state.value.copy(
                     isPreviewing = false,
@@ -66,7 +68,7 @@ class BackupViewModel @Inject constructor(
     fun confirmImport(preview: ImportPreview) {
         viewModelScope.launch {
             _state.value = _state.value.copy(isImporting = true)
-            val result = backupImporter.applyImport(preview)
+            val result = withContext(Dispatchers.IO) { backupImporter.applyImport(preview) }
             _state.value = _state.value.copy(isImporting = false, pendingPreview = null)
             result.onSuccess { r ->
                 _events.emit(BackupEvent.ImportSuccess(r))

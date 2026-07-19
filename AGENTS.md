@@ -18,25 +18,22 @@
 |------|------|------|
 | PRD | [`docs/PRD.md`](./docs/PRD.md) | 做什么、为什么、范围边界 |
 | 前端设计 | [`docs/UI_DESIGN.md`](./docs/UI_DESIGN.md) | 视觉调性、Token、分屏构图（UI 改版必读） |
-| 开发计划 | [`docs/DEV_PLAN.md`](./docs/DEV_PLAN.md) | 5 个 phase、36 个 task、命名规范 |
 | 目录结构 | [`docs/STRUCTURE.md`](./docs/STRUCTURE.md) | 每个目录/文件是干什么的 |
-| 第一性原理审查 | [`docs/REVIEW_REPORT.md`](./docs/REVIEW_REPORT.md) | v0.3.0 全量审查与修复结论 |
-| 产品方向审查 | [`docs/AUDIT_REPORT.md`](./docs/AUDIT_REPORT.md) | v0.1.0 产品方向审查 |
-| 方向修复记录 | [`docs/AUDIT_FIX_REPORT.md`](./docs/AUDIT_FIX_REPORT.md) | v0.2.0 修复完成记录 |
 | 更新日志 | [`CHANGELOG.md`](./CHANGELOG.md) | 版本变更记录 |
+
+历史材料（已完成的 phase 计划、审查报告、旧 RELEASE_NOTES）在 [`docs/archive/`](./docs/archive/)，**不作为日常开发依据**。
 
 ## 3. 当前状态
 
-✅ **v0.4.2 — UX 交互减层 + Mist Teal Ledger**
+✅ **v0.6.9 — Clarity Teal**
 
-视觉按 [`docs/UI_DESIGN.md`](./docs/UI_DESIGN.md) 落地；业务规则仍以 PRD / v0.3.1 为准。分享说明见 [`RELEASE_NOTES_v0.4.0.md`](./RELEASE_NOTES_v0.4.0.md)（骨架）与 CHANGELOG 0.4.1 / 0.4.2。
+视觉按 [`docs/UI_DESIGN.md`](./docs/UI_DESIGN.md) **v2.0** 落地；业务规则以 PRD 为准。
 
-**v0.4.x 关键变更**：
-- 品牌优先主题 + Serif/Sans/Mono；账单 Hero / 记账舞台 / 设置去卡片
-- v0.4.1：字体槽位修正、模式条均分、图表降权、AppSpacing 统一
-- v0.4.2：账单只看 / 查在全部流水；饼图带类别跳转；长按编辑；保存后连记
+**近期关键变更**（细节见 CHANGELOG）：
+- v0.6.x：Clarity Teal、快速记账、转账手续费、总资产、全局 UI 壳、点击/导航动效、区块面板分离
+- 更早：v0.4 UX 减层；v0.5 Soft Ledger（已废止）
 
-后续 UI 改动以 [`docs/UI_DESIGN.md`](./docs/UI_DESIGN.md) 为准；功能改动对照 PRD / REVIEW / STRUCTURE / CHANGELOG。
+后续 UI 改动以 UI_DESIGN v2 为准；功能改动对照 PRD / STRUCTURE / CHANGELOG。
 
 ## 4. 关键约束（不可变）
 
@@ -47,8 +44,8 @@
 | 金额单位 | 分（Long） | 永不用 Double |
 | 时间单位 | epoch millis (Long) | 永不用 Date 直存 |
 | 交易 type | Kotlin 枚举（v0.2 升级） | `TransactionType` / `CategoryType`，由 Room `Converters` 互转 |
-| 备份格式 | JSON v1 | schemaVersion 不可破坏性升级；v0.2 schemaVersion 升级到 2（DB 字段不变） |
-| Room schema | v1 → v2 → v3 | `MIGRATION_1_2` / `MIGRATION_2_3`（to_account_id 索引） |
+| 备份格式 | JSON v2 | schemaVersion 不可破坏性升级；v1 备份仍可导入（`fee` 缺省 0） |
+| Room schema | v1 → v6 | `1_2` / `2_3` / `3_4`（quick_records）/ `4_5`（余额索引）/ `5_6`（`fee`） |
 | 包名 | `com.biehuale.app` | 不可改 |
 | 隐私 | **不申请任何运行时权限** | 无 INTERNET、无 STORAGE、无 NOTIFICATION |
 | 备份方式 | SAF（Storage Access Framework） | 不需要存储权限 |
@@ -135,31 +132,21 @@ chore: bump compose-bom to 2024.10.00
 .\gradlew connectedAndroidTest   # 设备/模拟器测试（src/androidTest，含 MigrationTest）
 ```
 
-v0.2 测试套件（70+ 测试方法）：
+主要测试覆盖：
 - 工具类：`MoneyTest` / `DateExtTest`
-- Repository：`AccountRepositoryTest` / `TransactionRepositoryTest` / `AccountBalanceTest`
-- VM / 业务逻辑：`RecordViewModelTest` / `BillAggregatorTest`
+- Repository / 余额：`AccountRepositoryTest` / `TransactionRepositoryTest` / `AccountBalanceTest`
+- VM / 聚合：`RecordViewModelTest` / `BillAggregatorTest` / `AllTransactionsBoundRangeTest`
 - 备份：`BackupExporterTest` / `BackupImporterTest`
-- 集成（unit）：`AppDatabaseTest`（业务链路 + 外键）
-- 集成（androidTest）：`TransactionRoomSmokeTest` / `MigrationTest`（v1→v2）
+- 集成：`AppDatabaseTest`；androidTest：`MigrationTest` / `TransactionRoomSmokeTest`
 
-## 8. 实施时序
+## 8. 开发节奏
 
-按 `docs/DEV_PLAN.md` 的 phase 推进：
-
-- **Phase 1**：骨架（M1: 能装上 App、记一笔、看列表）
-- **Phase 2**：多账户 + 转账 + 流水编辑（M2）
-- **Phase 3**：统计图表 + 搜索 + 筛选（M3）
-- **Phase 4**：备份导入导出 + 软删除 + 深色模式手动切换（M4）
-- **Phase 5**：图标、性能优化、文档（M5: 可发布）
-- **v0.2 修复（2026-07-19）**：底部 Tab 永远可见 + AllTransactionsScreen + enum 改造 + Migration
-
-每个 phase 独立可用，**做完一个停下来 review 再继续**。v0.2 修复是对 v0.1 完成的 Phase 1-5 做"对得上 PRD"的对齐工作。
+Phase 1–5 与早期审查已完成（见 [`docs/archive/`](./docs/archive/)）。当前按 **版本迭代**：改 PRD/UI_DESIGN 边界内的功能或体验 → 更新 CHANGELOG →  bump `versionName` / `versionCode`。
 
 ## 9. 求助时
 
 报 bug / 提需求时附上：
-1. 你在哪个 phase / task
+1. 当前版本（`versionName`）与相关 CHANGELOG 条目
 2. 复现步骤
 3. 期望 vs 实际
 4. 错误日志（如果有）
@@ -167,4 +154,4 @@ v0.2 测试套件（70+ 测试方法）：
 
 ---
 
-**最后更新**：2026-07-19（v0.3.1 残余缺陷修复完成）
+**最后更新**：2026-07-20（v0.6.9 区块视觉分离）

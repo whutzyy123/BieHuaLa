@@ -1,6 +1,6 @@
 # 别花乐 (BieHuaLe) - 目录结构说明
 
-> **配套文档**：[PRD.md](./PRD.md) · [UI_DESIGN.md](./UI_DESIGN.md) · [DEV_PLAN.md](./DEV_PLAN.md) · [AGENTS.md](../AGENTS.md)
+> **配套文档**：[PRD.md](./PRD.md) · [UI_DESIGN.md](./UI_DESIGN.md) · [AGENTS.md](../AGENTS.md) · [archive/](./archive/)
 
 ## 顶层结构
 
@@ -9,16 +9,12 @@ BieHuaLe/
 ├── android/                    # Android Studio 项目根
 ├── docs/                       # 项目文档
 │   ├── PRD.md
-│   ├── UI_DESIGN.md            # 前端视觉与构图规范
-│   ├── DEV_PLAN.md
+│   ├── UI_DESIGN.md            # 前端视觉与构图规范（Clarity Teal v2）
 │   ├── STRUCTURE.md            # 本文件
-│   ├── AUDIT_REPORT.md         # v0.1.0 产品方向审查报告
-│   └── AUDIT_FIX_REPORT.md     # 审查修复完成报告（→ v0.2.0）
+│   └── archive/                # 历史计划 / 审查 / 旧 RELEASE_NOTES
 ├── .gitignore
 ├── AGENTS.md                   # 协作者指南（AI agent 必读）
 ├── CHANGELOG.md                # 版本更新日志
-├── RELEASE_NOTES_v0.1.0.md     # v0.1.0 分享说明
-├── RELEASE_NOTES_v0.2.0.md     # v0.2.0 分享说明
 └── README.md                   # 项目说明
 ```
 
@@ -64,20 +60,23 @@ com.biehuale.app/
 │
 ├── data/                       # 数据层
 │   ├── db/
-│   │   ├── AppDatabase.kt      # Room 数据库（version=2，@TypeConverters 注册）
+│   │   ├── AppDatabase.kt      # Room 数据库（version=6，@TypeConverters 注册）
 │   │   ├── Converters.kt       # TypeConverter（TransactionType / CategoryType ↔ String）
-│   │   ├── entity/             # ★ 3 个表
+│   │   ├── entity/             # 账户 / 类别 / 交易 / 快速记账
 │   │   │   ├── AccountEntity.kt
-│   │   │   ├── CategoryEntity.kt     # type 字段为 CategoryType 枚举
-│   │   │   └── TransactionEntity.kt # type 字段为 TransactionType 枚举
-│   │   └── dao/                # ★ 3 个 DAO
+│   │   │   ├── CategoryEntity.kt
+│   │   │   ├── TransactionEntity.kt
+│   │   │   └── QuickRecordEntity.kt
+│   │   └── dao/
 │   │       ├── AccountDao.kt
 │   │       ├── CategoryDao.kt
-│   │       └── TransactionDao.kt
-│   ├── repository/             # 业务封装（3 个 Repository）
+│   │       ├── TransactionDao.kt
+│   │       └── QuickRecordDao.kt
+│   ├── repository/
 │   │   ├── AccountRepository.kt
 │   │   ├── CategoryRepository.kt
-│   │   └── TransactionRepository.kt
+│   │   ├── TransactionRepository.kt
+│   │   └── QuickRecordRepository.kt
 │   ├── seed/
 │   │   └── DefaultCategories.kt    # 首次启动 seed（15 个内置类别）
 │   ├── preferences/
@@ -96,13 +95,19 @@ com.biehuale.app/
 │
 ├── ui/                         # UI 层
 │   ├── theme/
-│   │   ├── Color.kt            # 品牌色（松石绿 #006C5C）+ 收入/支出/类别色
-│   │   ├── Theme.kt            # Material 3 + Dynamic Color + 三种 ThemeMode
-│   │   └── Type.kt             # Typography（金额用 Monospace 等宽字体）
-│   ├── common/                 # 跨 Tab 复用组件
-│   │   ├── States.kt           # 通用状态（EmptyState 等 Composable）
-│   │   ├── MoneyInput.kt       # 金额输入框组件
-│   │   └── IconColorPresets.kt # 账户/类别图标 + 颜色预设（8 色）
+│   │   ├── Color.kt            # Clarity Teal（#0B7A6A）+ 语义色
+│   │   ├── Theme.kt / Type.kt / Motion.kt
+│   ├── common/                 # 跨 Tab 复用组件（见 UI_DESIGN §7）
+│   │   ├── SubScreenScaffold.kt    # 二级页壳 + BackTopAppBar
+│   │   ├── CategoryIconCircle.kt   # 色圆图标
+│   │   ├── ManageListRow.kt        # 管理列表行
+│   │   ├── ListSectionHeader.kt    # 列表分区标题
+│   │   ├── PrimaryButton.kt        # 主行动按钮
+│   │   ├── States.kt               # LoadingState / EmptyState
+│   │   ├── SearchBar.kt            # 全部流水搜索栏
+│   │   ├── FilterBottomSheet.kt    # 流水筛选 Sheet
+│   │   ├── MoneyInput.kt           # 金额键盘
+│   │   └── IconColorPresets.kt     # 账户/类别图标 + 颜色预设
 │   ├── nav/
 │   │   ├── AppNav.kt           # 3 Tab 导航（底部 Tab 永远可见）
 │   │   └── Destinations.kt     # 路由常量（11 个 destination）
@@ -113,8 +118,7 @@ com.biehuale.app/
 │   │       ├── SummaryCard.kt          # 月度汇总 + 比例条
 │   │       ├── CategoryPieChart.kt     # 类别饼图（纯 Compose Canvas）
 │   │       ├── DailyLineChart.kt       # 趋势折线图（纯 Compose Canvas）
-│   │       ├── SearchBar.kt
-│   │       └── FilterBottomSheet.kt
+│   │       └── TotalAssetsSheet.kt     # 总资产分户明细
 │   ├── record/                 # 记账 Tab
 │   │   ├── RecordScreen.kt
 │   │   └── RecordViewModel.kt

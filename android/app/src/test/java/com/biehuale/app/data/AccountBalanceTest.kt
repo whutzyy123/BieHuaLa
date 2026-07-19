@@ -40,8 +40,8 @@ class AccountBalanceTest {
         db = Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java)
             .allowMainThreadQueries()
             .build()
-        accountRepository = AccountRepository(db.accountDao())
-        transactionRepository = TransactionRepository(db.transactionDao())
+        accountRepository = AccountRepository(db.accountDao(), db.quickRecordDao())
+        transactionRepository = TransactionRepository(db.transactionDao(), db.accountDao(), db.categoryDao())
 
         val now = System.currentTimeMillis()
         wechatId = db.accountDao().insert(
@@ -145,15 +145,85 @@ class AccountBalanceTest {
         val now = System.currentTimeMillis()
         transactionRepository.save(
             TransactionEntity(
-                0, 50_00L, TransactionType.EXPENSE, expenseCatId, wechatId, null, null, now, 0, 0, null
+                id = 0,
+                amount = 50_00L,
+                type = TransactionType.EXPENSE,
+                categoryId = expenseCatId,
+                accountId = wechatId,
+                occurredAt = now,
+                createdAt = 0,
+                updatedAt = 0
             )
         )
         transactionRepository.save(
             TransactionEntity(
-                0, 100_00L, TransactionType.TRANSFER, null, wechatId, bankId, null, now, 0, 0, null
+                id = 0,
+                amount = 100_00L,
+                type = TransactionType.TRANSFER,
+                categoryId = null,
+                accountId = wechatId,
+                toAccountId = bankId,
+                occurredAt = now,
+                createdAt = 0,
+                updatedAt = 0
             )
         )
         assertThat(accountRepository.getBalance(wechatId)).isEqualTo(-150_00L)
         assertThat(accountRepository.getBalance(bankId)).isEqualTo(100_00L)
+    }
+
+    @Test
+    fun transfer_withFee_deductsFromReceiver() = runBlocking {
+        val now = System.currentTimeMillis()
+        // 转 500，手续费 1 → 转出 -500，转入 +499
+        transactionRepository.save(
+            TransactionEntity(
+                id = 0L,
+                amount = 500_00L,
+                type = TransactionType.TRANSFER,
+                categoryId = null,
+                accountId = wechatId,
+                toAccountId = bankId,
+                fee = 1_00L,
+                description = null,
+                occurredAt = now,
+                createdAt = 0L,
+                updatedAt = 0L,
+                deletedAt = null
+            )
+        )
+
+        assertThat(accountRepository.getBalance(wechatId)).isEqualTo(-500_00L)
+        assertThat(accountRepository.getBalance(bankId)).isEqualTo(499_00L)
+
+        val monthExpense = db.transactionDao().observeExpenseSum(
+            now - 86_400_000L,
+            now + 86_400_000L
+        ).first()
+        assertThat(monthExpense).isEqualTo(0L)
+    }
+
+    @Test
+    fun transfer_feeNotLessThanAmount_rejected() = runBlocking {
+        val now = System.currentTimeMillis()
+        try {
+            transactionRepository.save(
+                TransactionEntity(
+                    id = 0L,
+                    amount = 100_00L,
+                    type = TransactionType.TRANSFER,
+                    categoryId = null,
+                    accountId = wechatId,
+                    toAccountId = bankId,
+                    fee = 100_00L,
+                    occurredAt = now,
+                    createdAt = 0L,
+                    updatedAt = 0L
+                )
+            )
+            error("should have thrown")
+        } catch (e: IllegalArgumentException) {
+            assertThat(e.message).contains("手续费必须小于转账金额")
+        }
     }
 }

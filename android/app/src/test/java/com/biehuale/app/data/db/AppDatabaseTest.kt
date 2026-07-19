@@ -36,9 +36,9 @@ class AppDatabaseTest {
         db = Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java)
             .allowMainThreadQueries()
             .build()
-        accountRepo = AccountRepository(db.accountDao())
-        categoryRepo = CategoryRepository(db.categoryDao())
-        transactionRepo = TransactionRepository(db.transactionDao())
+        accountRepo = AccountRepository(db.accountDao(), db.quickRecordDao())
+        categoryRepo = CategoryRepository(db.categoryDao(), db.quickRecordDao())
+        transactionRepo = TransactionRepository(db.transactionDao(), db.accountDao(), db.categoryDao())
     }
 
     @After

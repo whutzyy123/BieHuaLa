@@ -2,6 +2,7 @@ package com.biehuale.app.ui.bill
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.biehuale.app.data.db.dao.AccountBalanceRow
 import com.biehuale.app.data.db.dao.CategoryTotal
 import com.biehuale.app.data.db.dao.DailyTotal
 import com.biehuale.app.data.db.entity.AccountEntity
@@ -12,6 +13,7 @@ import com.biehuale.app.data.repository.CategoryRepository
 import com.biehuale.app.data.repository.TransactionRepository
 import com.biehuale.app.domain.model.TransactionType
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -20,6 +22,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChangedBy
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -48,29 +52,51 @@ class BillViewModel @Inject constructor(
     val uiState: StateFlow<BillUiState> = combine(
         transactionRepository.observeAllActive(),
         categoryRepository.observeAll(), // 含归档：列表/饼图能解析名称
-        accountRepository.observeActive(),
+        accountRepository.observeAll(), // 含归档：最近列表能解析账户名
+        accountRepository.observeActiveBalances(), // 总资产（时点，与月份无关）
         _filter
-    ) { transactions, categories, accounts, filter ->
-        BillAggregator.buildState(transactions, categories, accounts, filter)
-    }.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000),
-        initialValue = BillUiState(isLoading = true)
-    )
+    ) { transactions, categories, accounts, balanceRows, filter ->
+        BillAggregator.buildState(
+            transactions = transactions,
+            categories = categories,
+            accounts = accounts,
+            balanceRows = balanceRows,
+            filter = filter
+        )
+    }
+        .flowOn(Dispatchers.Default)
+        .distinctUntilChangedBy { it.contentSignature() }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = BillUiState(isLoading = true)
+        )
 
     fun onMonthChange(year: Int, month: Int) {
         _filter.update { it.copy(year = year, month = month) }
     }
 
     fun onShiftMonth(delta: Int) {
-        _filter.update {
-            val cal = Calendar.getInstance().apply { set(it.year, it.month - 1, 1) }
+        _filter.update { prev ->
+            if (delta > 0 && !prev.isCustomRange && prev.isAtOrAfterCurrentMonth()) {
+                return@update prev
+            }
+            val cal = Calendar.getInstance().apply { set(prev.year, prev.month - 1, 1) }
             cal.add(Calendar.MONTH, delta)
-            it.copy(
-                year = cal.get(Calendar.YEAR),
-                month = cal.get(Calendar.MONTH) + 1,
+            val nextYear = cal.get(Calendar.YEAR)
+            val nextMonth = cal.get(Calendar.MONTH) + 1
+            val nextGranularity =
+                if (!prev.isCustomRange && prev.trendGranularity == TrendGranularity.MONTH) {
+                    TrendGranularity.DAY
+                } else {
+                    prev.trendGranularity
+                }
+            prev.copy(
+                year = nextYear,
+                month = nextMonth,
                 customRangeStart = null,
-                customRangeEnd = null
+                customRangeEnd = null,
+                trendGranularity = nextGranularity
             )
         }
     }
@@ -91,66 +117,15 @@ class BillViewModel @Inject constructor(
         _filter.update { it.copy(customRangeStart = null, customRangeEnd = null) }
     }
 
-    fun onOpenSearch() {
-        _filter.update { it.copy(isSearchOpen = true) }
-    }
-
-    fun onCloseSearch() {
-        _filter.update { it.copy(isSearchOpen = false, keyword = null) }
-    }
-
-    fun onKeywordChange(keyword: String) {
-        _filter.update { it.copy(keyword = keyword) }
-    }
-
     fun onTrendGranularityChange(granularity: TrendGranularity) {
-        _filter.update { it.copy(trendGranularity = granularity) }
-    }
-
-    fun onAccountToggle(id: Long) {
-        _filter.update { f ->
-            val newSet = f.accountIds.toMutableSet().apply {
-                if (!add(id)) remove(id)
-            }
-            f.copy(accountIds = newSet)
-        }
-    }
-
-    fun onCategoryToggle(id: Long) {
-        _filter.update { f ->
-            val newSet = f.categoryIds.toMutableSet().apply {
-                if (!add(id)) remove(id)
-            }
-            f.copy(categoryIds = newSet)
-        }
-    }
-
-    fun onTypeToggle(type: TransactionType) {
-        _filter.update { f ->
-            val newSet = f.types.toMutableSet().apply {
-                if (!add(type)) remove(type)
-            }
-            f.copy(types = newSet)
-        }
-    }
-
-    fun onApplyFilters(
-        types: Set<TransactionType>,
-        accountIds: Set<Long>,
-        categoryIds: Set<Long>
-    ) {
-        _filter.update {
-            it.copy(types = types, accountIds = accountIds, categoryIds = categoryIds)
-        }
-    }
-
-    fun onClearFilters() {
-        _filter.update {
-            it.copy(
-                accountIds = emptySet(),
-                categoryIds = emptySet(),
-                types = emptySet()
-            )
+        _filter.update { prev ->
+            val resolved =
+                if (!prev.isCustomRange && granularity == TrendGranularity.MONTH) {
+                    TrendGranularity.DAY
+                } else {
+                    granularity
+                }
+            prev.copy(trendGranularity = resolved)
         }
     }
 
@@ -183,13 +158,22 @@ data class BillFilter(
     val types: Set<TransactionType> = emptySet(),
     val keyword: String? = null,
     val isSearchOpen: Boolean = false,
-    val trendGranularity: TrendGranularity = TrendGranularity.DAY
+    val trendGranularity: TrendGranularity = TrendGranularity.DAY,
+    /** 全部流水深链：半开区间；null 表示不限日期 */
+    val boundRangeStart: Long? = null,
+    val boundRangeEndExclusive: Long? = null
 ) {
     val isCustomRange: Boolean get() = customRangeStart != null && customRangeEnd != null
     val isFiltering: Boolean
         get() = accountIds.isNotEmpty() || categoryIds.isNotEmpty() || types.isNotEmpty()
 
-    /** 半开区间 [start, endExclusive) */
+    fun isAtOrAfterCurrentMonth(): Boolean {
+        val nowY = currentYear()
+        val nowM = currentMonth1Indexed()
+        return year > nowY || (year == nowY && month >= nowM)
+    }
+
+    /** 半开区间 [start, endExclusive) —— 账单 Hero / 饼图统计用 */
     fun currentRange(): Pair<Long, Long> {
         if (customRangeStart != null && customRangeEnd != null) {
             val endExclusive = Calendar.getInstance().apply {
@@ -223,6 +207,12 @@ data class MonthlySummary(
         get() = if (incomeCents <= 0L) null else expenseCents.toFloat() / incomeCents.toFloat()
 }
 
+data class AccountAssetLine(
+    val accountId: Long,
+    val name: String,
+    val balanceCents: Long
+)
+
 data class BillUiState(
     val filter: BillFilter = BillFilter(),
     val visibleTransactions: List<TransactionEntity> = emptyList(),
@@ -231,6 +221,11 @@ data class BillUiState(
     val lineData: List<DailyTotal> = emptyList(),
     val categories: List<CategoryEntity> = emptyList(),
     val accounts: List<AccountEntity> = emptyList(),
+    /** 活跃账户余额合计（时点净值，不受账单月份/区间影响） */
+    val totalAssetsCents: Long = 0L,
+    val assetBreakdown: List<AccountAssetLine> = emptyList(),
+    /** 全库是否有任意活跃流水（与当前区间无关） */
+    val hasAnyActiveTransaction: Boolean = false,
     val isLoading: Boolean = true
 ) {
     fun categoryOf(id: Long?): CategoryEntity? =
@@ -238,6 +233,37 @@ data class BillUiState(
 
     fun accountOf(id: Long?): AccountEntity? =
         if (id == null) null else accounts.firstOrNull { it.id == id }
+
+    /** 全库从未记过账 */
+    val isTrulyEmpty: Boolean
+        get() = !hasAnyActiveTransaction &&
+            summary.expenseCents == 0L &&
+            summary.incomeCents == 0L
+
+    /** 有历史账，但当前区间无可见流水 */
+    val isRangeEmpty: Boolean
+        get() = hasAnyActiveTransaction &&
+            visibleTransactions.isEmpty() &&
+            summary.expenseCents == 0L &&
+            summary.incomeCents == 0L &&
+            summary.transferCents == 0L
+
+    /**
+     * 用于 distinct：summary / 最近 id / 饼图趋势签名，减少无关字段抖动导致整屏重组。
+     */
+    fun contentSignature(): List<Any?> = listOf(
+        isLoading,
+        filter,
+        summary,
+        totalAssetsCents,
+        hasAnyActiveTransaction,
+        visibleTransactions.map { it.id to it.updatedAt },
+        pieData,
+        lineData,
+        assetBreakdown,
+        categories.map { Triple(it.id, it.name, it.isArchived) },
+        accounts.map { Triple(it.id, it.name, it.isArchived) }
+    )
 }
 
 /**
@@ -260,11 +286,31 @@ object BillAggregator {
         }.timeInMillis
     }
 
+    fun buildAssetBreakdown(
+        accounts: List<AccountEntity>,
+        balanceRows: List<AccountBalanceRow>
+    ): List<AccountAssetLine> {
+        val balanceMap = balanceRows.associate { it.accountId to it.balance }
+        return accounts
+            .filter { !it.isArchived }
+            .map { account ->
+                AccountAssetLine(
+                    accountId = account.id,
+                    name = account.name,
+                    balanceCents = balanceMap[account.id] ?: 0L
+                )
+            }
+    }
+
+    fun totalAssetsCents(breakdown: List<AccountAssetLine>): Long =
+        breakdown.sumOf { it.balanceCents }
+
     fun buildState(
         transactions: List<TransactionEntity>,
         categories: List<CategoryEntity>,
         accounts: List<AccountEntity>,
-        filter: BillFilter
+        filter: BillFilter,
+        balanceRows: List<AccountBalanceRow> = emptyList()
     ): BillUiState {
         val (start, endExclusive) = filter.currentRange()
 
@@ -310,6 +356,8 @@ object BillAggregator {
         val expenses = statsVisible.filter { it.type == TransactionType.EXPENSE }
         val lineData = buildLineSeries(expenses, start, endExclusive, filter.trendGranularity)
 
+        val assetBreakdown = buildAssetBreakdown(accounts, balanceRows)
+
         return BillUiState(
             filter = filter,
             visibleTransactions = listVisible,
@@ -322,6 +370,9 @@ object BillAggregator {
             lineData = lineData,
             categories = categories,
             accounts = accounts,
+            totalAssetsCents = totalAssetsCents(assetBreakdown),
+            assetBreakdown = assetBreakdown,
+            hasAnyActiveTransaction = transactions.isNotEmpty(),
             isLoading = false
         )
     }

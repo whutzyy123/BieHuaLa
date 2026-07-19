@@ -9,14 +9,14 @@ import kotlinx.serialization.Serializable
  *
  * Schema 版本演进：
  *  - v1：初始 schema（type 为 String）
- *  - 后续加字段：schemaVersion += 1，BackupDto 加新字段，旧版本解析仍兼容
+ *  - v2：TransactionDto.fee 转账手续费（分）；缺省 0，旧备份仍可解析
  *  - 删/重命名字段：禁止 — 必须新增 + 迁移
  *
  * 重要：DTO 层的 `type` 保持 String（与历史 v1 备份兼容），
  * 仅在 import / export 时与 domain enum 互转（toDto / fromDto 转换函数）。
  */
 object BackupSchema {
-    const val CURRENT_VERSION = 1
+    const val CURRENT_VERSION = 2
     const val SUPPORTED_MIN_VERSION = 1  // 拒绝 schemaVersion < 此值的备份
 }
 
@@ -66,6 +66,8 @@ data class TransactionDto(
     val categoryId: Long? = null,
     val accountId: Long,
     val toAccountId: Long? = null,
+    /** 转账手续费（分）；旧备份缺省为 0 */
+    val fee: Long = 0L,
     val description: String? = null,
     val occurredAt: Long,
     val createdAt: Long,

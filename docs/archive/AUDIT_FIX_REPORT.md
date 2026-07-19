@@ -1,7 +1,7 @@
 # 别花乐 (BieHuaLe) — 审查报告修复完成报告
 
 > **执行时间**：2026-07-19
-> **触发文档**：[`docs/AUDIT_REPORT.md`](./AUDIT_REPORT.md)
+> **触发文档**：[`AUDIT_REPORT.md`](./AUDIT_REPORT.md)  
 > **执行基准**：v0.1.0 + Phase 1–5 全部交付物
 > **方法**：依据审查报告 P0/P1/P2/P3 优先级，全量执行修复
 

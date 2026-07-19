@@ -1,9 +1,7 @@
 package com.biehuale.app.ui.record
 
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -20,8 +18,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -33,9 +29,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -43,11 +37,15 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.biehuale.app.ui.common.MoneyKeypad
+import com.biehuale.app.ui.common.PrimaryButton
+import com.biehuale.app.ui.common.SectionPanel
 import com.biehuale.app.ui.record.components.AccountAndTimeRow
-import com.biehuale.app.ui.record.components.CategoryGrid
+import com.biehuale.app.ui.record.components.CategoryDropdown
 import com.biehuale.app.ui.record.components.DescriptionField
+import com.biehuale.app.ui.record.components.QuickRecordDropdown
 import com.biehuale.app.ui.record.components.TimeField
 import com.biehuale.app.ui.record.components.TransferSection
+import com.biehuale.app.ui.theme.AppMotion
 import com.biehuale.app.ui.theme.AppRadius
 import com.biehuale.app.ui.theme.AppSemanticColors
 import com.biehuale.app.ui.theme.AppSpacing
@@ -59,18 +57,24 @@ fun RecordScreen(
     transactionId: Long? = null,
     onSavedAndExit: () -> Unit = {},
     onManageAccounts: () -> Unit = {},
+    onManageCategories: () -> Unit = {},
+    onManageQuickRecords: () -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: RecordViewModel = hiltViewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val formState by viewModel.formState.collectAsStateWithLifecycle()
+    val amountDisplay by viewModel.amountDisplay.collectAsStateWithLifecycle()
+    val canSave by viewModel.canSave.collectAsStateWithLifecycle()
+    val isSaving by viewModel.isSaving.collectAsStateWithLifecycle()
     val isEditing by viewModel.isEditing.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val editing = isEditing != null
 
+    // 仅编辑进入 / 从编辑退回新建时 reset；Tab restoreState 回切不整树重写
     LaunchedEffect(transactionId) {
         if (transactionId != null && transactionId > 0) {
             viewModel.loadForEdit(transactionId)
-        } else {
+        } else if (viewModel.isEditing.value != null) {
             viewModel.resetToNewMode()
         }
     }
@@ -104,66 +108,30 @@ fun RecordScreen(
             }
 
             ModeSelector(
-                mode = uiState.mode,
+                mode = formState.mode,
                 enabled = !editing,
                 onModeChange = viewModel::onModeChange
             )
 
             AmountStage(
-                amountDisplay = uiState.amountDisplay,
-                mode = uiState.mode
+                amountDisplay = amountDisplay,
+                mode = formState.mode
             )
 
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .verticalScroll(rememberScrollState())
-            ) {
-                if (uiState.mode == RecordMode.TRANSFER) {
-                    TransferSection(
-                        amountDisplay = uiState.amountDisplay,
-                        fromAccountId = uiState.selectedAccountId,
-                        toAccountId = uiState.toAccountId,
-                        accounts = uiState.accounts,
-                        onFromAccountSelect = viewModel::onAccountSelect,
-                        onToAccountSelect = viewModel::onToAccountSelect,
-                        onManageAccounts = onManageAccounts
-                    )
-                    TimeField(
-                        occurredAt = uiState.occurredAt,
-                        onTimeChange = viewModel::onTimeChange,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = AppSpacing.md, vertical = AppSpacing.xs)
-                    )
-                } else {
-                    CategoryGrid(
-                        categories = uiState.currentCategories,
-                        selectedId = uiState.selectedCategoryId,
-                        onSelect = viewModel::onCategorySelect,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = AppSpacing.md, vertical = AppSpacing.sm)
-                    )
-                    AccountAndTimeRow(
-                        accounts = uiState.accounts,
-                        selectedAccountId = uiState.selectedAccountId,
-                        occurredAt = uiState.occurredAt,
-                        onAccountSelect = viewModel::onAccountSelect,
-                        onTimeChange = viewModel::onTimeChange,
-                        onManageAccounts = onManageAccounts
-                    )
-                }
-
-                DescriptionField(
-                    description = uiState.description,
-                    onDescriptionChange = viewModel::onDescriptionChange
-                )
-            }
+            RecordFormBody(
+                formState = formState,
+                editing = editing,
+                isSaving = isSaving,
+                onManageAccounts = onManageAccounts,
+                onManageCategories = onManageCategories,
+                onManageQuickRecords = onManageQuickRecords,
+                viewModel = viewModel,
+                modifier = Modifier.weight(1f)
+            )
 
             BottomSection(
-                canSave = uiState.canSave,
-                isEditing = isEditing != null,
+                canSave = canSave,
+                isEditing = editing,
                 onDigit = viewModel::onDigit,
                 onDelete = viewModel::onDeleteChar,
                 onClear = viewModel::onClear,
@@ -179,6 +147,82 @@ fun RecordScreen(
 }
 
 @Composable
+private fun RecordFormBody(
+    formState: RecordFormState,
+    editing: Boolean,
+    isSaving: Boolean,
+    onManageAccounts: () -> Unit,
+    onManageCategories: () -> Unit,
+    onManageQuickRecords: () -> Unit,
+    viewModel: RecordViewModel,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+            .verticalScroll(rememberScrollState())
+            .padding(vertical = AppSpacing.sm)
+    ) {
+        SectionPanel {
+            if (formState.mode == RecordMode.TRANSFER) {
+                val transferAmount by viewModel.amountDisplay.collectAsStateWithLifecycle()
+                TransferSection(
+                    amountDisplay = transferAmount,
+                    feeDisplay = formState.feeDisplay,
+                    fromAccountId = formState.selectedAccountId,
+                    toAccountId = formState.toAccountId,
+                    accounts = formState.accounts,
+                    onFromAccountSelect = viewModel::onAccountSelect,
+                    onToAccountSelect = viewModel::onToAccountSelect,
+                    onFeeChange = viewModel::onFeeChange,
+                    onManageAccounts = onManageAccounts
+                )
+                TimeField(
+                    occurredAt = formState.occurredAt,
+                    onTimeChange = viewModel::onTimeChange,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = AppSpacing.xs)
+                )
+            } else {
+                if (formState.mode == RecordMode.EXPENSE && !editing) {
+                    QuickRecordDropdown(
+                        options = formState.quickRecords,
+                        enabled = !isSaving,
+                        onSelect = viewModel::onQuickRecord,
+                        onManage = onManageQuickRecords,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = AppSpacing.xs)
+                    )
+                }
+                CategoryDropdown(
+                    categories = formState.currentCategories,
+                    selectedId = formState.selectedCategoryId,
+                    onSelect = viewModel::onCategorySelect,
+                    onManageCategories = onManageCategories,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = AppSpacing.xs)
+                )
+                AccountAndTimeRow(
+                    accounts = formState.accounts,
+                    selectedAccountId = formState.selectedAccountId,
+                    occurredAt = formState.occurredAt,
+                    onAccountSelect = viewModel::onAccountSelect,
+                    onTimeChange = viewModel::onTimeChange,
+                    onManageAccounts = onManageAccounts
+                )
+            }
+
+            DescriptionField(
+                description = formState.description,
+                onDescriptionChange = viewModel::onDescriptionChange
+            )
+        }
+    }
+}
+
+@Composable
 private fun ModeSelector(
     mode: RecordMode,
     enabled: Boolean = true,
@@ -190,15 +234,12 @@ private fun ModeSelector(
         RecordMode.TRANSFER to "转账"
     )
     val selectedIndex = modes.indexOfFirst { it.first == mode }.coerceAtLeast(0)
-    val accent by animateColorAsState(
-        targetValue = when (mode) {
-            RecordMode.EXPENSE -> AppSemanticColors.expense
-            RecordMode.INCOME -> AppSemanticColors.income
-            RecordMode.TRANSFER -> AppSemanticColors.transfer
-        },
-        animationSpec = tween(200, easing = FastOutSlowInEasing),
-        label = "modeAccent"
-    )
+    // 字重 / 选中色即时；仅指示条做 180ms 位移动画
+    val selectedAccent = when (mode) {
+        RecordMode.EXPENSE -> AppSemanticColors.expense
+        RecordMode.INCOME -> AppSemanticColors.income
+        RecordMode.TRANSFER -> AppSemanticColors.transfer
+    }
 
     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = AppSpacing.md)) {
         BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
@@ -206,7 +247,7 @@ private fun ModeSelector(
             val barWidth = tabWidth * 0.36f
             val indicatorOffset by animateDpAsState(
                 targetValue = tabWidth * selectedIndex + (tabWidth - barWidth) / 2,
-                animationSpec = tween(200, easing = FastOutSlowInEasing),
+                animationSpec = AppMotion.mode(),
                 label = "modeIndicator"
             )
 
@@ -218,7 +259,7 @@ private fun ModeSelector(
                             text = label,
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
-                            color = if (selected) accent
+                            color = if (selected) selectedAccent
                             else MaterialTheme.colorScheme.onSurfaceVariant.copy(
                                 alpha = if (enabled) 1f else 0.45f
                             ),
@@ -238,9 +279,9 @@ private fun ModeSelector(
                         modifier = Modifier
                             .offset(x = indicatorOffset)
                             .width(barWidth)
-                            .height(2.dp)
-                            .clip(RoundedCornerShape(1.dp))
-                            .background(accent)
+                            .height(3.dp)
+                            .clip(RoundedCornerShape(2.dp))
+                            .background(selectedAccent)
                     )
                 }
             }
@@ -253,32 +294,26 @@ private fun AmountStage(
     amountDisplay: String,
     mode: RecordMode
 ) {
-    val color by animateColorAsState(
+    val accent by animateColorAsState(
         targetValue = when (mode) {
             RecordMode.EXPENSE -> AppSemanticColors.expense
             RecordMode.INCOME -> AppSemanticColors.income
             RecordMode.TRANSFER -> AppSemanticColors.transfer
         },
-        animationSpec = tween(200, easing = FastOutSlowInEasing),
+        animationSpec = AppMotion.mode(),
         label = "amountColor"
     )
+    val ink = MaterialTheme.colorScheme.onSurface
     val sign = when (mode) {
         RecordMode.EXPENSE -> "-"
         RecordMode.INCOME -> "+"
         RecordMode.TRANSFER -> ""
     }
-    val glow = color.copy(alpha = 0.10f)
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = AppSpacing.lg)
-            .background(
-                Brush.radialGradient(
-                    colors = listOf(glow, Color.Transparent),
-                    radius = with(LocalDensity.current) { 360.dp.toPx() }
-                )
-            )
+            .padding(vertical = AppSpacing.lg + AppSpacing.xs)
             .padding(horizontal = AppSpacing.lg),
         contentAlignment = Alignment.Center
     ) {
@@ -286,7 +321,7 @@ private fun AmountStage(
             Text(
                 text = "¥",
                 style = MoneyHeroStyle.copy(fontSize = 22.sp, lineHeight = 28.sp),
-                color = color.copy(alpha = 0.85f),
+                color = accent,
                 fontFamily = MoneyFontFamily,
                 fontWeight = FontWeight.SemiBold
             )
@@ -295,14 +330,14 @@ private fun AmountStage(
                 Text(
                     text = sign,
                     style = MoneyHeroStyle,
-                    color = color,
+                    color = accent,
                     fontFamily = MoneyFontFamily
                 )
             }
             Text(
                 text = if (amountDisplay == "0") "0.00" else amountDisplay,
                 style = MoneyHeroStyle,
-                color = color,
+                color = ink,
                 fontFamily = MoneyFontFamily,
                 fontWeight = FontWeight.SemiBold
             )
@@ -322,28 +357,15 @@ private fun BottomSection(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.6f))
+            .background(MaterialTheme.colorScheme.surface)
             .padding(bottom = AppSpacing.sm)
     ) {
-        Button(
+        PrimaryButton(
+            text = if (isEditing) "更新" else "保存",
             onClick = onSave,
             enabled = canSave,
-            shape = RoundedCornerShape(AppRadius.md),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary
-            ),
-            elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp),
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = AppSpacing.md, vertical = AppSpacing.sm)
-                .height(52.dp)
-        ) {
-            Text(
-                if (isEditing) "更新" else "保存",
-                style = MaterialTheme.typography.titleLarge
-            )
-        }
+            modifier = Modifier.padding(horizontal = AppSpacing.md, vertical = AppSpacing.sm)
+        )
 
         MoneyKeypad(
             onDigit = onDigit,

@@ -1,11 +1,8 @@
-package com.biehuale.app.ui.bill.components
+package com.biehuale.app.ui.common
 
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
@@ -17,10 +14,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.text.input.ImeAction
+import com.biehuale.app.ui.icons.BhlIcons
 import com.biehuale.app.ui.theme.AppSpacing
 
 /**
- * 搜索栏（账单 Tab 顶部展开态）
+ * 搜索栏（全部流水页顶部展开态）
  */
 @Composable
 fun SearchBar(
@@ -49,13 +47,13 @@ fun SearchBar(
         placeholder = { Text("搜索说明…") },
         leadingIcon = {
             IconButton(onClick = onClose) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "关闭")
+                Icon(BhlIcons.ArrowBack, contentDescription = "关闭")
             }
         },
         trailingIcon = {
             if (keyword.isNotEmpty()) {
                 IconButton(onClick = { onKeywordChange("") }) {
-                    Icon(Icons.Filled.Close, contentDescription = "清空")
+                    Icon(BhlIcons.Close, contentDescription = "清空")
                 }
             }
         },

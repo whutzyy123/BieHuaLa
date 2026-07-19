@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Themed icon：与前景同形，由系统着色 -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <path
+        android:fillColor="#FFFFFF"
+        android:fillType="evenOdd"
+        android:pathData="
+            M54,25c16.02,0 29,12.98 29,29s-12.98,29 -29,29s-29,-12.98 -29,-29s12.98,-29 29,-29z
+
+            M33,34h21v16H33z
+            M38.5,39.5h10v5h-10z
+
+            M33,54h23v5.5H33z
+            M40.5,54h6.5v24h-6.5z
+            M47,66l15.5,13.5h-7.5L47,71.5z
+
+            M63.5,34h7v40h-7z
+            M70.5,34h6.5v5.5h-6.5z
+            M70.5,49.5h6v5.5h-6z
+        " />
+</vector>

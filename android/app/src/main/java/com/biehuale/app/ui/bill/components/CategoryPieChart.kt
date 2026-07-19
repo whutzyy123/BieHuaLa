@@ -33,7 +33,6 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.biehuale.app.data.db.dao.CategoryTotal
 import com.biehuale.app.data.db.entity.CategoryEntity
 import com.biehuale.app.ui.theme.AppSpacing
@@ -69,19 +68,7 @@ fun CategoryPieChart(
         )
     }
 
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = AppSpacing.md, vertical = AppSpacing.sm)
-    ) {
-        Text(
-            text = "花在哪",
-            style = MaterialTheme.typography.labelLarge,
-            letterSpacing = 0.8.sp,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Spacer(modifier = Modifier.height(AppSpacing.sm))
-
+    Column(modifier = modifier.fillMaxWidth()) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             BoxWithConstraints(
                 modifier = Modifier.size(96.dp),
@@ -96,12 +83,16 @@ fun CategoryPieChart(
                 Canvas(
                     modifier = Modifier
                         .size(96.dp)
-                        .pointerInput(entries, total) {
+                        .pointerInput(entries, total, strokeWidth) {
                             detectTapGestures { offset ->
                                 val cx = size.width / 2f
                                 val cy = size.height / 2f
                                 val dx = offset.x - cx
                                 val dy = offset.y - cy
+                                val dist = kotlin.math.sqrt(dx * dx + dy * dy)
+                                val outerR = size.width / 2f
+                                val innerR = outerR - strokeWidth
+                                if (dist < innerR || dist > outerR) return@detectTapGestures
                                 var angle = Math.toDegrees(atan2(dy.toDouble(), dx.toDouble())).toFloat()
                                 angle = (angle + 90f + 360f) % 360f
                                 var start = 0f
@@ -119,9 +110,10 @@ fun CategoryPieChart(
                     var startAngle = -90f
                     entries.forEach { entry ->
                         val sweep = (entry.total.toFloat() / total.toFloat()) * 360f
-                        val isSelected = selectedCategoryId == entry.categoryId
+                        val dimmed = selectedCategoryId != null &&
+                            selectedCategoryId != entry.categoryId
                         drawArc(
-                            color = if (isSelected) entry.color else entry.color.copy(alpha = 0.4f),
+                            color = if (dimmed) entry.color.copy(alpha = 0.4f) else entry.color,
                             startAngle = startAngle,
                             sweepAngle = sweep,
                             useCenter = false,
@@ -143,10 +135,12 @@ fun CategoryPieChart(
                 verticalArrangement = Arrangement.spacedBy(AppSpacing.xs)
             ) {
                 entries.forEach { entry ->
+                    val isSelected = selectedCategoryId == null ||
+                        selectedCategoryId == entry.categoryId
                     LegendItem(
                         entry = entry,
                         total = total,
-                        isSelected = selectedCategoryId == entry.categoryId,
+                        isSelected = isSelected,
                         onClick = { onCategoryClick(entry.categoryId) }
                     )
                 }

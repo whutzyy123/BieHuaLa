@@ -3,7 +3,7 @@
 **日期**：2026-07-19  
 **主题**：审查报告全量修复（数据正确性 + 可靠性）
 
-详见 [`docs/REVIEW_REPORT.md`](./docs/REVIEW_REPORT.md) 与 [`CHANGELOG.md`](./CHANGELOG.md)。
+详见 [`REVIEW_REPORT.md`](./REVIEW_REPORT.md) 与 [`../../CHANGELOG.md`](../../CHANGELOG.md)。
 
 ## 用户可见
 

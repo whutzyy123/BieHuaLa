@@ -38,7 +38,7 @@ class TransactionRepositoryTest {
         )
             .allowMainThreadQueries()
             .build()
-        transactionRepo = TransactionRepository(db.transactionDao())
+        transactionRepo = TransactionRepository(db.transactionDao(), db.accountDao(), db.categoryDao())
         val now = System.currentTimeMillis()
         accountId = db.accountDao().insert(
             AccountEntity(0, "\u73b0\u91d1", "cash", "#FF9800", 0L, false, now, now)
@@ -65,6 +65,21 @@ class TransactionRepositoryTest {
         val ex = runCatching { transactionRepo.save(tx) }.exceptionOrNull()
         assertThat(ex).isInstanceOf(IllegalArgumentException::class.java)
         assertThat(ex?.message).contains("\u91d1\u989d\u5fc5\u987b\u5927\u4e8e 0")
+    }
+
+    @Test
+    fun amount_rejectsAboveMaxCents() = runTest {
+        val tx = newTx(amount = com.biehuale.app.util.Money.MAX_CENTS + 1)
+        val ex = runCatching { transactionRepo.save(tx) }.exceptionOrNull()
+        assertThat(ex?.message).contains("\u4e0a\u9650")
+    }
+
+    @Test
+    fun save_rejectsArchivedAccount() = runTest {
+        db.accountDao().archive(accountId, System.currentTimeMillis())
+        val tx = newTx(type = TransactionType.EXPENSE, categoryId = expenseCatId)
+        val ex = runCatching { transactionRepo.save(tx) }.exceptionOrNull()
+        assertThat(ex?.message).contains("\u5f52\u6863")
     }
 
     @Test

@@ -37,9 +37,9 @@ class BackupImporterTest {
         db = Room.inMemoryDatabaseBuilder(ctx, AppDatabase::class.java)
             .allowMainThreadQueries()
             .build()
-        accountRepo = AccountRepository(db.accountDao())
-        categoryRepo = CategoryRepository(db.categoryDao())
-        transactionRepo = TransactionRepository(db.transactionDao())
+        accountRepo = AccountRepository(db.accountDao(), db.quickRecordDao())
+        categoryRepo = CategoryRepository(db.categoryDao(), db.quickRecordDao())
+        transactionRepo = TransactionRepository(db.transactionDao(), db.accountDao(), db.categoryDao())
         importer = BackupImporter(
             context = ctx,
             database = db,
@@ -136,8 +136,7 @@ class BackupImporterTest {
         val existing = accountRepo.getById(existingId)
         assertThat(existing).isNotNull()
         assertThat(existing?.name).isEqualTo("\u73b0\u91d1")
-        // 本地已非 0：保留本地期初
-        assertThat(existing?.initialBalance).isEqualTo(100_00L)
+        // 本地已非 0：保留本地期�?        assertThat(existing?.initialBalance).isEqualTo(100_00L)
         assertThat(result.getOrNull()?.accountsInserted).isEqualTo(0)
     }
 

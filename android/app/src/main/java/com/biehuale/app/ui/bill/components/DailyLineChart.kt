@@ -41,6 +41,7 @@ fun DailyLineChart(
     data: List<DailyTotal>,
     granularity: TrendGranularity,
     onGranularityChange: (TrendGranularity) -> Unit,
+    showMonthGranularity: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     if (data.isEmpty()) return
@@ -49,26 +50,18 @@ fun DailyLineChart(
     val displayMax = (maxValue * 1.2f).toLong()
     val lineColor = AppSemanticColors.expense
 
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = AppSpacing.md, vertical = AppSpacing.sm)
-    ) {
+    Column(modifier = modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.End,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = "怎么花的",
-                style = MaterialTheme.typography.labelLarge,
-                letterSpacing = 0.8.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.weight(1f)
-            )
             Row(horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm + AppSpacing.xs)) {
                 GranularitySegment("日", TrendGranularity.DAY, granularity, onGranularityChange)
                 GranularitySegment("周", TrendGranularity.WEEK, granularity, onGranularityChange)
-                GranularitySegment("月", TrendGranularity.MONTH, granularity, onGranularityChange)
+                if (showMonthGranularity) {
+                    GranularitySegment("月", TrendGranularity.MONTH, granularity, onGranularityChange)
+                }
             }
         }
         Spacer(modifier = Modifier.height(AppSpacing.sm))

@@ -1,6 +1,6 @@
 # 别花乐 v0.2.0 发布说明
 
-v0.1.0 的产品方向审查修复版。**对得上 PRD 的可分享安装包**。详见 [`docs/AUDIT_REPORT.md`](./docs/AUDIT_REPORT.md) 和 [`docs/AUDIT_FIX_REPORT.md`](./docs/AUDIT_FIX_REPORT.md)。
+v0.1.0 的产品方向审查修复版。**对得上 PRD 的可分享安装包**。详见 [`AUDIT_REPORT.md`](./AUDIT_REPORT.md) 和 [`AUDIT_FIX_REPORT.md`](./AUDIT_FIX_REPORT.md)。
 
 ## 安装
 

@@ -15,10 +15,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AutoAwesome
-import androidx.compose.material.icons.filled.DarkMode
-import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
@@ -43,6 +39,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.biehuale.app.data.preferences.ThemeMode
 import com.biehuale.app.ui.common.SettingsGroup
 import com.biehuale.app.ui.common.SettingsRow
+import com.biehuale.app.ui.icons.BhlIcons
 import com.biehuale.app.ui.theme.AppSpacing
 import com.biehuale.app.ui.theme.BrandSerif
 import com.biehuale.app.ui.theme.ScreenTitleStyle
@@ -51,6 +48,7 @@ import com.biehuale.app.ui.theme.ScreenTitleStyle
 fun SettingsScreen(
     onNavigateToAccountManage: () -> Unit = {},
     onNavigateToCategoryManage: () -> Unit = {},
+    onNavigateToQuickRecordManage: () -> Unit = {},
     onNavigateToRecycleBin: () -> Unit = {},
     modifier: Modifier = Modifier,
     settingsViewModel: SettingsViewModel = hiltViewModel(),
@@ -59,8 +57,6 @@ fun SettingsScreen(
 ) {
     val accounts by settingsViewModel.accounts.collectAsStateWithLifecycle()
     val backupState by backupViewModel.state.collectAsStateWithLifecycle()
-    val themeMode by appearanceViewModel.themeMode.collectAsStateWithLifecycle()
-    val dynamicColor by appearanceViewModel.dynamicColor.collectAsStateWithLifecycle()
 
     val snackbarHostState = remember { SnackbarHostState() }
     var showImportPreview by remember { mutableStateOf(false) }
@@ -126,6 +122,15 @@ fun SettingsScreen(
                 )
             }
 
+            SettingsGroup(title = "快速记账") {
+                SettingsRow(
+                    title = "管理快速记账",
+                    subtitle = "预设类别 / 说明 / 金额，支出页一点即记",
+                    onClick = onNavigateToQuickRecordManage,
+                    showDivider = false
+                )
+            }
+
             SettingsGroup(title = "数据") {
                 SettingsRow(
                     title = "导出备份",
@@ -153,30 +158,11 @@ fun SettingsScreen(
                 )
             }
 
-            SettingsGroup(title = "外观") {
-                val themeLabel = when (themeMode) {
-                    ThemeMode.SYSTEM -> "跟随系统"
-                    ThemeMode.LIGHT -> "浅色"
-                    ThemeMode.DARK -> "深色"
-                }
-                SettingsRow(
-                    title = "主题",
-                    subtitle = "当前：$themeLabel",
-                    onClick = { showThemeDialog = true }
-                )
-                SettingsRow(
-                    title = "跟随壁纸取色",
-                    subtitle = "Android 12+ Material You（默认关）",
-                    trailing = {
-                        Switch(
-                            checked = dynamicColor,
-                            onCheckedChange = appearanceViewModel::setDynamicColor
-                        )
-                    },
-                    showChevron = false,
-                    showDivider = false
-                )
-            }
+            // 独立订阅外观状态，避免备份/账户刷新时拖累主题区重组
+            AppearanceSettingsGroup(
+                appearanceViewModel = appearanceViewModel,
+                onThemeClick = { showThemeDialog = true }
+            )
 
             Column(
                 modifier = Modifier
@@ -247,9 +233,41 @@ fun SettingsScreen(
 
     if (showThemeDialog) {
         ThemePickerDialog(
-            current = themeMode,
-            onSelect = { appearanceViewModel.setThemeMode(it) },
+            appearanceViewModel = appearanceViewModel,
             onDismiss = { showThemeDialog = false }
+        )
+    }
+}
+
+@Composable
+private fun AppearanceSettingsGroup(
+    appearanceViewModel: AppearanceViewModel,
+    onThemeClick: () -> Unit
+) {
+    val themeMode by appearanceViewModel.themeMode.collectAsStateWithLifecycle()
+    val dynamicColor by appearanceViewModel.dynamicColor.collectAsStateWithLifecycle()
+    val themeLabel = when (themeMode) {
+        ThemeMode.SYSTEM -> "跟随系统"
+        ThemeMode.LIGHT -> "浅色"
+        ThemeMode.DARK -> "深色"
+    }
+    SettingsGroup(title = "外观") {
+        SettingsRow(
+            title = "主题",
+            subtitle = "当前：$themeLabel",
+            onClick = onThemeClick
+        )
+        SettingsRow(
+            title = "跟随壁纸取色",
+            subtitle = "Android 12+ Material You（默认关）",
+            trailing = {
+                Switch(
+                    checked = dynamicColor,
+                    onCheckedChange = appearanceViewModel::setDynamicColor
+                )
+            },
+            showChevron = false,
+            showDivider = false
         )
     }
 }
@@ -292,10 +310,10 @@ private fun ImportPreviewDialog(
 
 @Composable
 private fun ThemePickerDialog(
-    current: ThemeMode,
-    onSelect: (ThemeMode) -> Unit,
+    appearanceViewModel: AppearanceViewModel,
     onDismiss: () -> Unit
 ) {
+    val current by appearanceViewModel.themeMode.collectAsStateWithLifecycle()
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("选择主题") },
@@ -303,21 +321,21 @@ private fun ThemePickerDialog(
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 ThemeOption(
                     label = "跟随系统",
-                    icon = Icons.Filled.AutoAwesome,
+                    icon = BhlIcons.Sparkle,
                     selected = current == ThemeMode.SYSTEM,
-                    onClick = { onSelect(ThemeMode.SYSTEM) }
+                    onClick = { appearanceViewModel.setThemeMode(ThemeMode.SYSTEM) }
                 )
                 ThemeOption(
                     label = "浅色",
-                    icon = Icons.Filled.LightMode,
+                    icon = BhlIcons.LightMode,
                     selected = current == ThemeMode.LIGHT,
-                    onClick = { onSelect(ThemeMode.LIGHT) }
+                    onClick = { appearanceViewModel.setThemeMode(ThemeMode.LIGHT) }
                 )
                 ThemeOption(
                     label = "深色",
-                    icon = Icons.Filled.DarkMode,
+                    icon = BhlIcons.DarkMode,
                     selected = current == ThemeMode.DARK,
-                    onClick = { onSelect(ThemeMode.DARK) }
+                    onClick = { appearanceViewModel.setThemeMode(ThemeMode.DARK) }
                 )
             }
         },

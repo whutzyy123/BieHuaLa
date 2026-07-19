@@ -36,8 +36,8 @@ class AccountRepositoryTest {
         )
             .allowMainThreadQueries()
             .build()
-        accountRepo = AccountRepository(db.accountDao())
-        transactionRepo = TransactionRepository(db.transactionDao())
+        accountRepo = AccountRepository(db.accountDao(), db.quickRecordDao())
+        transactionRepo = TransactionRepository(db.transactionDao(), db.accountDao(), db.categoryDao())
         val now = System.currentTimeMillis()
         expenseCatId = db.categoryDao().insert(
             CategoryEntity(0, "\u9910\u996e", "restaurant", "#FF5722", CategoryType.EXPENSE, true, 1, false, now, now)
@@ -170,6 +170,34 @@ class AccountRepositoryTest {
         accountRepo.archive(id1)
         val active = accountRepo.observeActive().first()
         assertThat(active.map { it.id }).containsExactly(id2)
+    }
+
+    @Test
+    fun archive_deletesDependentQuickRecords() = runTest {
+        val accountId = accountRepo.create(name = "\u73b0\u91d1")
+        val now = System.currentTimeMillis()
+        val categoryId = db.categoryDao().insert(
+            com.biehuale.app.data.db.entity.CategoryEntity(
+                0, "\u4ea4\u901a", null, null,
+                com.biehuale.app.domain.model.CategoryType.EXPENSE,
+                true, 1, false, now, now
+            )
+        )
+        db.quickRecordDao().insert(
+            com.biehuale.app.data.db.entity.QuickRecordEntity(
+                id = 0L,
+                categoryId = categoryId,
+                accountId = accountId,
+                amount = 400L,
+                description = "metro",
+                sortOrder = 1,
+                createdAt = now,
+                updatedAt = now
+            )
+        )
+        assertThat(db.quickRecordDao().getAll()).hasSize(1)
+        accountRepo.archive(accountId)
+        assertThat(db.quickRecordDao().getAll()).isEmpty()
     }
 
     private suspend fun saveTx(

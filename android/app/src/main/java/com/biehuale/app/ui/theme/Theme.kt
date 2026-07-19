@@ -15,12 +15,10 @@ import androidx.compose.ui.platform.LocalContext
 import com.biehuale.app.data.preferences.ThemeMode
 
 /**
- * Mist Teal Ledger Theme
+ * Clarity Teal Theme（docs/UI_DESIGN.md v2.0）
  *
  * - 默认品牌色板优先；可选 Dynamic Color（设置开关，默认关）
  * - 主题模式：SYSTEM / LIGHT / DARK
- *
- * 详见 docs/UI_DESIGN.md、docs/PRD.md §7.1–7.2。
  */
 
 /** 与 [BieHuaLeTheme] 的实际亮/暗一致（强制主题时不等于系统） */
@@ -42,7 +40,7 @@ private val LightFallbackScheme = lightColorScheme(
 
     background = SurfaceBaseLight,
     onBackground = BrandInkLight,
-    surface = SurfaceBaseLight,
+    surface = SurfaceElevatedLight,
     onSurface = BrandInkLight,
     surfaceVariant = SurfaceMutedLight,
     onSurfaceVariant = TextSecondaryLight,
@@ -77,7 +75,7 @@ private val DarkFallbackScheme = darkColorScheme(
 
     background = SurfaceBaseDark,
     onBackground = BrandInkDark,
-    surface = SurfaceBaseDark,
+    surface = SurfaceElevatedDark,
     onSurface = BrandInkDark,
     surfaceVariant = SurfaceMutedDark,
     onSurfaceVariant = TextSecondaryDark,

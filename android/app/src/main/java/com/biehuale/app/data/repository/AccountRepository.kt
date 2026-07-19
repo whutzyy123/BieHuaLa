@@ -1,6 +1,8 @@
 package com.biehuale.app.data.repository
 
+import com.biehuale.app.data.db.dao.AccountBalanceRow
 import com.biehuale.app.data.db.dao.AccountDao
+import com.biehuale.app.data.db.dao.QuickRecordDao
 import com.biehuale.app.data.db.entity.AccountEntity
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
@@ -8,16 +10,18 @@ import javax.inject.Singleton
 
 @Singleton
 class AccountRepository @Inject constructor(
-    private val accountDao: AccountDao
+    private val accountDao: AccountDao,
+    private val quickRecordDao: QuickRecordDao
 ) {
 
     fun observeActive(): Flow<List<AccountEntity>> = accountDao.observeActive()
 
     fun observeAll(): Flow<List<AccountEntity>> = accountDao.observeAll()
 
-    suspend fun getById(id: Long): AccountEntity? = accountDao.getById(id)
+    /** 活跃账户余额 Map 源（随 transactions 失效自动刷新） */
+    fun observeActiveBalances(): Flow<List<AccountBalanceRow>> = accountDao.observeActiveBalances()
 
-    suspend fun countActive(): Int = accountDao.countActive()
+    suspend fun getById(id: Long): AccountEntity? = accountDao.getById(id)
 
     suspend fun getBalance(id: Long): Long? = accountDao.getBalance(id)
 
@@ -50,13 +54,7 @@ class AccountRepository @Inject constructor(
     }
 
     suspend fun archive(id: Long) {
+        quickRecordDao.deleteByAccountId(id)
         accountDao.archive(id, System.currentTimeMillis())
-    }
-
-    suspend fun restore(id: Long) {
-        val account = accountDao.getById(id) ?: throw IllegalStateException("账户不存在")
-        val conflict = accountDao.findActiveByName(account.name)
-        require(conflict == null || conflict.id == id) { "已存在同名活跃账户，无法恢复" }
-        accountDao.restore(id, System.currentTimeMillis())
     }
 }

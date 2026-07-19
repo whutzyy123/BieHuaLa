@@ -1,6 +1,8 @@
 package com.biehuale.app.ui.bill.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -11,10 +13,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DateRangePicker
 import androidx.compose.material3.Icon
@@ -23,6 +21,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDateRangePickerState
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -31,11 +30,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.biehuale.app.domain.model.TransactionType
 import com.biehuale.app.ui.bill.MonthlySummary
 import com.biehuale.app.ui.common.AmountRole
 import com.biehuale.app.ui.common.AmountText
+import com.biehuale.app.ui.icons.BhlIcons
 import com.biehuale.app.ui.theme.AppSemanticColors
 import com.biehuale.app.ui.theme.AppSpacing
 import com.biehuale.app.ui.theme.BrandInkDark
@@ -50,7 +51,7 @@ import java.util.Locale
 import kotlin.math.min
 
 /**
- * 账单首屏 Hero：月份居中 + 本月已花 + 收入/结余 + 细比例轨。
+ * 账单首屏 Hero：月份居中 + 本月已花 + 收入/结余 + 总资产 + 细比例轨。
  */
 @Composable
 fun SummaryCard(
@@ -63,6 +64,9 @@ fun SummaryCard(
     isCustomRange: Boolean,
     customRangeStart: Long?,
     customRangeEnd: Long?,
+    canShiftForward: Boolean = true,
+    totalAssetsCents: Long = 0L,
+    onTotalAssetsClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var showDatePicker by remember { mutableStateOf(false) }
@@ -71,9 +75,7 @@ fun SummaryCard(
     val secondary = MaterialTheme.colorScheme.onSurfaceVariant
 
     Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = AppSpacing.md, vertical = AppSpacing.xl)
+        modifier = modifier.fillMaxWidth()
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -83,7 +85,7 @@ fun SummaryCard(
             Box(modifier = Modifier.width(96.dp), contentAlignment = Alignment.CenterStart) {
                 IconButton(onClick = { onShiftMonth(-1) }) {
                     Icon(
-                        Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+                        BhlIcons.ChevronLeft,
                         contentDescription = "上一月"
                     )
                 }
@@ -103,9 +105,12 @@ fun SummaryCard(
                 modifier = Modifier.width(96.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                IconButton(onClick = { onShiftMonth(1) }) {
+                IconButton(
+                    onClick = { onShiftMonth(1) },
+                    enabled = canShiftForward
+                ) {
                     Icon(
-                        Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                        BhlIcons.ChevronRight,
                         contentDescription = "下一月"
                     )
                 }
@@ -114,7 +119,7 @@ fun SummaryCard(
                     modifier = Modifier.size(40.dp)
                 ) {
                     Icon(
-                        Icons.Filled.CalendarMonth,
+                        BhlIcons.Calendar,
                         contentDescription = "选择区间",
                         modifier = Modifier.size(20.dp)
                     )
@@ -125,7 +130,7 @@ fun SummaryCard(
         Spacer(modifier = Modifier.height(AppSpacing.md))
 
         Text(
-            text = "本月已花",
+            text = if (isCustomRange) "区间已花" else "本月已花",
             style = MaterialTheme.typography.labelLarge,
             color = secondary
         )
@@ -155,6 +160,32 @@ fun SummaryCard(
                 color = secondary
             )
         }
+        Spacer(modifier = Modifier.height(AppSpacing.xs))
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .clip(RoundedCornerShape(AppSpacing.xs))
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = ripple(bounded = true),
+                    role = Role.Button,
+                    onClick = onTotalAssetsClick
+                )
+                .padding(vertical = 2.dp)
+        ) {
+            Text(text = "总资产 ", style = MaterialTheme.typography.bodyMedium, color = secondary)
+            Text(
+                text = totalAssetsCents.toDisplayString(),
+                style = MoneyRowStyle.copy(fontSize = MaterialTheme.typography.bodyMedium.fontSize),
+                color = secondary
+            )
+            Icon(
+                imageVector = BhlIcons.ChevronRight,
+                contentDescription = "查看分户余额",
+                tint = secondary,
+                modifier = Modifier.size(18.dp)
+            )
+        }
         if (summary.transferCents > 0) {
             Spacer(modifier = Modifier.height(AppSpacing.xs))
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -169,26 +200,32 @@ fun SummaryCard(
 
         if (ratio != null) {
             Spacer(modifier = Modifier.height(AppSpacing.md))
-            val expenseShare = if (summary.incomeCents + summary.expenseCents <= 0L) {
-                0f
-            } else {
-                summary.expenseCents.toFloat() /
-                    (summary.incomeCents + summary.expenseCents).toFloat()
-            }
-            val progress = min(expenseShare.coerceIn(0f, 1f), 1f)
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(4.dp)
-                    .clip(RoundedCornerShape(2.dp))
-                    .background(MaterialTheme.colorScheme.outlineVariant)
+            val progress = min(ratio, 1f).coerceIn(0f, 1f)
+            val percentLabel = "${kotlin.math.round(ratio * 100f).toInt()}%"
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
             ) {
                 Box(
                     modifier = Modifier
-                        .fillMaxWidth(progress)
+                        .weight(1f)
                         .height(4.dp)
                         .clip(RoundedCornerShape(2.dp))
-                        .background(AppSemanticColors.expense.copy(alpha = 0.85f))
+                        .background(MaterialTheme.colorScheme.outlineVariant)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(progress)
+                            .height(4.dp)
+                            .clip(RoundedCornerShape(2.dp))
+                            .background(AppSemanticColors.expense.copy(alpha = 0.85f))
+                    )
+                }
+                Spacer(modifier = Modifier.width(AppSpacing.sm))
+                Text(
+                    text = percentLabel,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = secondary
                 )
             }
         }
@@ -241,6 +278,6 @@ private fun DateRangePickerDialogWrapper(
 }
 
 private fun formatDate(millis: Long): String {
-    val fmt = SimpleDateFormat("MM-dd", Locale.CHINA)
+    val fmt = SimpleDateFormat("yyyy-MM-dd", Locale.CHINA)
     return fmt.format(Date(millis))
 }

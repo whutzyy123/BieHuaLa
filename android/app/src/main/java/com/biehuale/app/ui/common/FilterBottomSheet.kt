@@ -1,4 +1,4 @@
-package com.biehuale.app.ui.bill.components
+package com.biehuale.app.ui.common
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -10,12 +10,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountBalanceWallet
-import androidx.compose.material.icons.filled.ArrowDownward
-import androidx.compose.material.icons.filled.ArrowUpward
-import androidx.compose.material.icons.filled.Category
-import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -23,7 +17,6 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SheetState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -35,6 +28,8 @@ import androidx.compose.ui.unit.dp
 import com.biehuale.app.data.db.entity.AccountEntity
 import com.biehuale.app.data.db.entity.CategoryEntity
 import com.biehuale.app.domain.model.TransactionType
+import com.biehuale.app.ui.icons.BhlIcons
+import com.biehuale.app.ui.theme.AppSpacing
 
 /**
  * 筛选 BottomSheet：勾选即时写回；底部「完成」关 Sheet、「清除」清空。
@@ -52,16 +47,11 @@ fun FilterBottomSheet(
     onApply: (types: Set<TransactionType>, accountIds: Set<Long>, categoryIds: Set<Long>) -> Unit,
     onClearApplied: () -> Unit
 ) {
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
+    LedgerSheet(
+        onDismiss = onDismiss,
         sheetState = sheetState
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp)
-        ) {
-            Row(
+        Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -81,7 +71,7 @@ fun FilterBottomSheet(
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     TypeChip(
                         label = "支出",
-                        icon = Icons.Filled.ArrowUpward,
+                        icon = BhlIcons.Expense,
                         selected = TransactionType.EXPENSE in selectedTypes,
                         onClick = {
                             onApply(
@@ -93,7 +83,7 @@ fun FilterBottomSheet(
                     )
                     TypeChip(
                         label = "收入",
-                        icon = Icons.Filled.ArrowDownward,
+                        icon = BhlIcons.Income,
                         selected = TransactionType.INCOME in selectedTypes,
                         onClick = {
                             onApply(
@@ -105,7 +95,7 @@ fun FilterBottomSheet(
                     )
                     TypeChip(
                         label = "转账",
-                        icon = Icons.Filled.SwapHoriz,
+                        icon = BhlIcons.Transfer,
                         selected = TransactionType.TRANSFER in selectedTypes,
                         onClick = {
                             onApply(
@@ -136,7 +126,7 @@ fun FilterBottomSheet(
                         items(accounts, key = { it.id }) { account ->
                             CheckboxRow(
                                 label = account.name,
-                                icon = Icons.Filled.AccountBalanceWallet,
+                                icon = BhlIcons.Wallet,
                                 checked = account.id in selectedAccountIds,
                                 onToggle = {
                                     onApply(
@@ -169,7 +159,7 @@ fun FilterBottomSheet(
                         items(categories, key = { it.id }) { category ->
                             CheckboxRow(
                                 label = category.name,
-                                icon = Icons.Filled.Category,
+                                icon = BhlIcons.Category,
                                 checked = category.id in selectedCategoryIds,
                                 onToggle = {
                                     onApply(
@@ -193,7 +183,6 @@ fun FilterBottomSheet(
                 Text("完成")
             }
             Spacer(modifier = Modifier.height(8.dp))
-        }
     }
 }
 
@@ -208,13 +197,13 @@ private fun FilterSection(
     title: String,
     content: @Composable () -> Unit
 ) {
-    Column(modifier = Modifier.padding(vertical = 8.dp)) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleSmall,
-            color = MaterialTheme.colorScheme.primary
+    Column(modifier = Modifier.padding(vertical = AppSpacing.sm)) {
+        ListSectionHeader(
+            title = title,
+            color = MaterialTheme.colorScheme.primary,
+            horizontalPadding = 0.dp,
+            verticalPadding = AppSpacing.xs
         )
-        Spacer(modifier = Modifier.height(4.dp))
         content()
     }
 }

@@ -18,15 +18,6 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface CategoryDao {
 
-    // ---------- 查询 ----------
-
-    @Query("""
-        SELECT * FROM categories
-        WHERE is_archived = 0 AND type = :type
-        ORDER BY sort_order ASC, id ASC
-    """)
-    fun observeByType(type: String): Flow<List<CategoryEntity>>
-
     @Query("SELECT * FROM categories WHERE is_archived = 0 ORDER BY type, sort_order")
     fun observeAllActive(): Flow<List<CategoryEntity>>
 
@@ -44,25 +35,12 @@ interface CategoryDao {
     """)
     suspend fun findActiveByTypeAndName(type: String, name: String): CategoryEntity?
 
-    @Query("SELECT COUNT(*) FROM categories")
-    suspend fun count(): Int
-
-    @Query("SELECT COUNT(*) FROM categories WHERE is_builtin = 1")
-    suspend fun countBuiltin(): Int
-
-    /**
-     * 查所有内置类别（用于"重置默认"时遍历恢复）
-     */
+    /** 查所有内置类别（用于"重置默认"时遍历恢复） */
     @Query("SELECT * FROM categories WHERE is_builtin = 1")
     suspend fun getAllBuiltin(): List<CategoryEntity>
 
-    // ---------- 写入 ----------
-
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insert(category: CategoryEntity): Long
-
-    @Insert(onConflict = OnConflictStrategy.IGNORE)
-    suspend fun insertAll(categories: List<CategoryEntity>): List<Long>
 
     @Update
     suspend fun update(category: CategoryEntity)
@@ -73,7 +51,4 @@ interface CategoryDao {
      */
     @Query("UPDATE categories SET is_archived = 1, updated_at = :now WHERE id = :id")
     suspend fun archive(id: Long, now: Long)
-
-    @Query("UPDATE categories SET is_archived = 0, updated_at = :now WHERE id = :id")
-    suspend fun restore(id: Long, now: Long)
 }

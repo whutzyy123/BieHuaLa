@@ -1,5 +1,6 @@
 package com.biehuale.app.ui.bill
 
+import com.biehuale.app.data.db.dao.AccountBalanceRow
 import com.biehuale.app.data.db.entity.AccountEntity
 import com.biehuale.app.data.db.entity.CategoryEntity
 import com.biehuale.app.data.db.entity.TransactionEntity
@@ -216,6 +217,67 @@ class BillAggregatorTest {
         assertThat(state.summary.expenseCents).isEqualTo(30_00L)
         assertThat(state.visibleTransactions).hasSize(1)
         assertThat(state.visibleTransactions.first().id).isEqualTo(1L)
+    }
+
+    @Test
+    fun emptyLibrary_isTrulyEmpty() {
+        val state = BillAggregator.buildState(
+            emptyList(), categories, accounts,
+            BillFilter(year = 2026, month = 7)
+        )
+        assertThat(state.hasAnyActiveTransaction).isFalse()
+        assertThat(state.isTrulyEmpty).isTrue()
+        assertThat(state.isRangeEmpty).isFalse()
+    }
+
+    @Test
+    fun otherMonthHasData_currentMonthEmpty_isRangeEmpty() {
+        val june = localDay(2026, 6, 10, 12, 0)
+        val txs = listOf(tx(1, 50_00L, TransactionType.EXPENSE, 1L, 10L, null, june))
+        val state = BillAggregator.buildState(
+            txs, categories, accounts,
+            BillFilter(year = 2026, month = 7)
+        )
+        assertThat(state.hasAnyActiveTransaction).isTrue()
+        assertThat(state.isTrulyEmpty).isFalse()
+        assertThat(state.isRangeEmpty).isTrue()
+        assertThat(state.visibleTransactions).isEmpty()
+    }
+
+    @Test
+    fun isAtOrAfterCurrentMonth_detectsFuture() {
+        val nowY = Calendar.getInstance().get(Calendar.YEAR)
+        val nowM = Calendar.getInstance().get(Calendar.MONTH) + 1
+        assertThat(BillFilter(year = nowY, month = nowM).isAtOrAfterCurrentMonth()).isTrue()
+        assertThat(BillFilter(year = nowY, month = nowM).let {
+            it.copy(month = if (nowM > 1) nowM - 1 else 1, year = if (nowM > 1) nowY else nowY - 1)
+        }.isAtOrAfterCurrentMonth()).isFalse()
+    }
+
+    @Test
+    fun totalAssets_sumsActiveBalances_ignoresArchived() {
+        val withArchived = accounts + AccountEntity(
+            id = 99L, name = "旧卡", icon = null, colorHex = null,
+            initialBalance = 0L, isArchived = true, createdAt = 1L, updatedAt = 1L
+        )
+        val rows = listOf(
+            AccountBalanceRow(accountId = 10L, balance = 100_00L),
+            AccountBalanceRow(accountId = 11L, balance = 50_00L),
+            AccountBalanceRow(accountId = 99L, balance = 999_00L)
+        )
+        val breakdown = BillAggregator.buildAssetBreakdown(withArchived, rows)
+        assertThat(breakdown).hasSize(2)
+        assertThat(BillAggregator.totalAssetsCents(breakdown)).isEqualTo(150_00L)
+
+        val state = BillAggregator.buildState(
+            transactions = emptyList(),
+            categories = categories,
+            accounts = withArchived,
+            filter = BillFilter(year = 2026, month = 7),
+            balanceRows = rows
+        )
+        assertThat(state.totalAssetsCents).isEqualTo(150_00L)
+        assertThat(state.assetBreakdown.map { it.name }).containsExactly("现金", "银行")
     }
 
     private fun localDay(y: Int, m: Int, d: Int, hour: Int, minute: Int): Long {

@@ -23,8 +23,8 @@ android {
         applicationId = "com.biehuale.app"
         minSdk = 24
         targetSdk = 35
-        versionCode = 6
-        versionName = "0.4.2"
+        versionCode = 17
+        versionName = "0.6.9"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables { useSupportLibrary = true }

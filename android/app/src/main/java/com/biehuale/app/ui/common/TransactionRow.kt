@@ -4,6 +4,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -17,7 +18,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -47,31 +50,56 @@ fun TransactionRow(
     showDivider: Boolean = true,
     rowModifier: Modifier = Modifier
 ) {
-    val title = when (transaction.type) {
-        TransactionType.TRANSFER ->
-            "${account?.name ?: "?"} → ${toAccount?.name ?: "?"}"
-        else -> {
-            val name = category?.name ?: "未分类"
-            if (category?.isArchived == true) "$name（已归档）" else name
+    val title = remember(
+        transaction.type,
+        category?.name,
+        category?.isArchived,
+        account?.name,
+        account?.isArchived,
+        toAccount?.name,
+        toAccount?.isArchived
+    ) {
+        when (transaction.type) {
+            TransactionType.TRANSFER -> {
+                val from = account?.let {
+                    if (it.isArchived) "${it.name}（已归档）" else it.name
+                } ?: "?"
+                val to = toAccount?.let {
+                    if (it.isArchived) "${it.name}（已归档）" else it.name
+                } ?: "?"
+                "$from → $to"
+            }
+            else -> {
+                val name = category?.name ?: "未分类"
+                if (category?.isArchived == true) "$name（已归档）" else name
+            }
         }
     }
-    val accountLabel = account?.let {
-        if (it.isArchived) "${it.name}（已归档）" else it.name
-    } ?: "未指定账户"
-    val subtitle = buildString {
-        append(accountLabel)
-        if (!transaction.description.isNullOrBlank()) {
-            append(" · ")
-            append(transaction.description)
+    val subtitle = remember(account?.name, account?.isArchived, transaction.description) {
+        val accountLabel = account?.let {
+            if (it.isArchived) "${it.name}（已归档）" else it.name
+        } ?: "未指定账户"
+        buildString {
+            append(accountLabel)
+            if (!transaction.description.isNullOrBlank()) {
+                append(" · ")
+                append(transaction.description)
+            }
         }
     }
-    val dotColor = parseHexColor(category?.colorHex) ?: MaterialTheme.colorScheme.primary
+    val fallback = MaterialTheme.colorScheme.primary
+    val dotColor = remember(category?.colorHex, fallback) {
+        parseHexColor(category?.colorHex) ?: fallback
+    }
 
+    val interactionSource = remember { MutableInteractionSource() }
     Column(modifier = rowModifier.fillMaxWidth()) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .combinedClickable(
+                    interactionSource = interactionSource,
+                    indication = ripple(bounded = true),
                     onClick = onClick,
                     onLongClick = onLongClick
                 )

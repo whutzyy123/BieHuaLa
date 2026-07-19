@@ -1,24 +1,15 @@
 package com.biehuale.app.ui.record.components
 
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
@@ -27,9 +18,6 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
@@ -42,15 +30,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.biehuale.app.data.db.entity.AccountEntity
 import com.biehuale.app.data.db.entity.CategoryEntity
-import com.biehuale.app.ui.theme.AppRadius
+import com.biehuale.app.ui.common.CategoryIconCircle
+import com.biehuale.app.ui.common.LedgerField
+import com.biehuale.app.ui.icons.BhlIcons
+import com.biehuale.app.ui.record.QuickRecordOption
 import com.biehuale.app.ui.theme.AppSpacing
 import com.biehuale.app.util.DateExt.toDateTimeString
 import com.biehuale.app.util.Money
@@ -61,34 +49,48 @@ import java.util.TimeZone
 @Composable
 fun TransferSection(
     amountDisplay: String,
+    feeDisplay: String,
     fromAccountId: Long?,
     toAccountId: Long?,
     accounts: List<AccountEntity>,
     onFromAccountSelect: (Long) -> Unit,
     onToAccountSelect: (Long) -> Unit,
+    onFeeChange: (String) -> Unit,
     onManageAccounts: () -> Unit = {}
 ) {
     val fromName = accounts.firstOrNull { it.id == fromAccountId }?.name ?: "转出账户"
     val toName = accounts.firstOrNull { it.id == toAccountId }?.name ?: "转入账户"
-    val amountText = run {
-        val cents = Money.parseToCents(
-            if (amountDisplay.endsWith(".")) amountDisplay + "0" else amountDisplay
-        ) ?: 0L
-        if (cents > 0L) cents.toDisplayString() else "¥0.00"
+    val amountCents = Money.parseToCents(
+        if (amountDisplay.endsWith(".")) amountDisplay + "0" else amountDisplay
+    ) ?: 0L
+    val feeCents = Money.parseToCents(
+        feeDisplay.trim().ifEmpty { "0" }.let {
+            if (it.endsWith(".")) it + "0" else it
+        }
+    ) ?: 0L
+    val receiveCents = (amountCents - feeCents).coerceAtLeast(0L)
+    val amountText = if (amountCents > 0L) amountCents.toDisplayString() else "¥0.00"
+    val receiveText = if (amountCents > 0L) receiveCents.toDisplayString() else "¥0.00"
+    val preview = if (feeCents > 0L) {
+        "$amountText → $fromName -$amountText → $toName +$receiveText"
+    } else {
+        "$amountText → $fromName -$amountText → $toName +$amountText"
     }
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(AppSpacing.md),
+        modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(AppSpacing.sm + AppSpacing.xs)
     ) {
         Text(
-            text = "$amountText → $fromName -$amountText → $toName +$amountText",
+            text = preview,
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.primary
         )
         Text(
-            text = "转账不影响本月总支出",
+            text = if (feeCents > 0L) {
+                "手续费从到账中扣除；转账本金不计入本月支出"
+            } else {
+                "转账不影响本月总支出；可选填手续费"
+            },
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -108,7 +110,7 @@ fun TransferSection(
             )
 
             Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                imageVector = BhlIcons.ArrowForward,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -122,92 +124,173 @@ fun TransferSection(
                 modifier = Modifier.weight(1f)
             )
         }
+
+        LedgerField(
+            value = feeDisplay,
+            onValueChange = onFeeChange,
+            label = "手续费（可选）",
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Decimal,
+                imeAction = ImeAction.Done
+            ),
+            trailing = {
+                Text(
+                    text = "元",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            },
+            modifier = Modifier.fillMaxWidth()
+        )
     }
 }
 
 @Composable
-fun CategoryGrid(
+fun QuickRecordDropdown(
+    options: List<QuickRecordOption>,
+    enabled: Boolean = true,
+    onSelect: (Long) -> Unit,
+    onManage: () -> Unit = {},
+    modifier: Modifier = Modifier
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val displayName = when {
+        options.isEmpty() -> "暂无 · 去设置"
+        else -> "点选即可记账（${options.size}）"
+    }
+
+    Box(modifier = modifier) {
+        LedgerField(
+            value = displayName,
+            onValueChange = {},
+            label = "快速记账",
+            readOnly = true,
+            modifier = Modifier.fillMaxWidth(),
+            trailing = { Text("▾") },
+            onClick = {
+                if (!enabled) return@LedgerField
+                if (options.isEmpty()) {
+                    onManage()
+                } else {
+                    expanded = true
+                }
+            }
+        )
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            modifier = Modifier.heightIn(max = 320.dp)
+        ) {
+            options.forEach { option ->
+                DropdownMenuItem(
+                    text = {
+                        QuickRecordMenuRow(option = option)
+                    },
+                    onClick = {
+                        onSelect(option.entity.id)
+                        expanded = false
+                    }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun QuickRecordMenuRow(option: QuickRecordOption) {
+    val category = option.category
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        CategoryIconCircle(
+            iconKey = category?.icon,
+            colorHex = category?.colorHex,
+            size = 28.dp
+        )
+        Spacer(modifier = Modifier.width(AppSpacing.sm))
+        Column {
+            Text(
+                text = buildString {
+                    append(category?.name ?: "类别")
+                    val desc = option.entity.description?.takeIf { it.isNotBlank() }
+                    if (desc != null) {
+                        append(" · ")
+                        append(desc)
+                    }
+                },
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = option.entity.amount.toDisplayString(),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.primary
+            )
+        }
+    }
+}
+
+@Composable
+fun CategoryDropdown(
     categories: List<CategoryEntity>,
     selectedId: Long?,
     onSelect: (Long) -> Unit,
+    onManageCategories: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    if (categories.isEmpty()) {
-        Box(
-            modifier = modifier
-                .height(120.dp)
-                .clip(RoundedCornerShape(AppRadius.sm))
-                .background(MaterialTheme.colorScheme.surfaceVariant),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                "暂无类别，请到「设置」添加",
-                style = MaterialTheme.typography.bodyMedium
-            )
-        }
-        return
-    }
+    var expanded by remember { mutableStateOf(false) }
+    val selected = categories.firstOrNull { it.id == selectedId }
+    val displayName = selected?.name
+        ?: if (categories.isEmpty()) "无类别 · 去管理" else "选择类别"
 
-    LazyVerticalGrid(
-        columns = GridCells.Fixed(4),
-        modifier = modifier.heightIn(max = 200.dp),
-        contentPadding = PaddingValues(AppSpacing.xs),
-        horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
-        verticalArrangement = Arrangement.spacedBy(AppSpacing.xs)
-    ) {
-        items(categories, key = { it.id }) { category ->
-            CategoryChip(
-                category = category,
-                selected = category.id == selectedId,
-                onClick = { onSelect(category.id) }
-            )
+    Box(modifier = modifier) {
+        LedgerField(
+            value = displayName,
+            onValueChange = {},
+            label = "类别",
+            readOnly = true,
+            modifier = Modifier.fillMaxWidth(),
+            trailing = { Text("▾") },
+            onClick = {
+                if (categories.isEmpty()) {
+                    onManageCategories()
+                } else {
+                    expanded = true
+                }
+            }
+        )
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            modifier = Modifier.heightIn(max = 320.dp)
+        ) {
+            categories.forEach { category ->
+                DropdownMenuItem(
+                    text = {
+                        CategoryDropdownRow(category = category)
+                    },
+                    onClick = {
+                        onSelect(category.id)
+                        expanded = false
+                    }
+                )
+            }
         }
     }
 }
 
 @Composable
-private fun CategoryChip(
-    category: CategoryEntity,
-    selected: Boolean,
-    onClick: () -> Unit
-) {
-    val containerColor = if (selected) {
-        MaterialTheme.colorScheme.primaryContainer
-    } else {
-        Color.Transparent
-    }
-    val contentColor = if (selected) {
-        MaterialTheme.colorScheme.onPrimaryContainer
-    } else {
-        MaterialTheme.colorScheme.onSurface
-    }
-
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(56.dp)
-            .clip(RoundedCornerShape(AppRadius.sm)),
-        color = containerColor,
-        border = BorderStroke(
-            width = if (selected) 1.5.dp else 0.dp,
-            color = if (selected) MaterialTheme.colorScheme.primary
-            else Color.Transparent
-        ),
-        onClick = onClick
-    ) {
-        Box(
-            contentAlignment = Alignment.Center,
-            modifier = Modifier.padding(horizontal = AppSpacing.xs)
-        ) {
-            Text(
-                text = category.name,
-                style = MaterialTheme.typography.bodyMedium,
-                color = contentColor,
-                fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-        }
+private fun CategoryDropdownRow(category: CategoryEntity) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        CategoryIconCircle(
+            iconKey = category.icon,
+            colorHex = category.colorHex,
+            size = 28.dp
+        )
+        Spacer(modifier = Modifier.width(AppSpacing.sm))
+        Text(
+            text = category.name,
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurface
+        )
     }
 }
 
@@ -223,7 +306,7 @@ fun AccountAndTimeRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = AppSpacing.md, vertical = AppSpacing.xs),
+            .padding(vertical = AppSpacing.xs),
         horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)
     ) {
         AccountDropdown(
@@ -256,32 +339,20 @@ fun AccountDropdown(
     val displayName = selected?.name ?: if (accounts.isEmpty()) "无账户 · 去管理" else "选择账户"
 
     Box(modifier = modifier) {
-        OutlinedTextField(
+        LedgerField(
             value = displayName,
             onValueChange = {},
+            label = label,
             readOnly = true,
-            enabled = false,
-            label = { Text(label) },
-            shape = RoundedCornerShape(AppRadius.sm),
             modifier = Modifier.fillMaxWidth(),
-            colors = OutlinedTextFieldDefaults.colors(
-                disabledTextColor = MaterialTheme.colorScheme.onSurface,
-                disabledBorderColor = MaterialTheme.colorScheme.outline,
-                disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                disabledTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant
-            ),
-            trailingIcon = { Text("▾") }
-        )
-        Box(
-            modifier = Modifier
-                .matchParentSize()
-                .clickable {
-                    if (accounts.isEmpty()) {
-                        onManageAccounts()
-                    } else {
-                        expanded = true
-                    }
+            trailing = { Text("▾") },
+            onClick = {
+                if (accounts.isEmpty()) {
+                    onManageAccounts()
+                } else {
+                    expanded = true
                 }
+            }
         )
         DropdownMenu(
             expanded = expanded,
@@ -338,24 +409,13 @@ fun TimeField(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(modifier = Modifier.weight(1f)) {
-            OutlinedTextField(
+            LedgerField(
                 value = occurredAt.toDateTimeString(),
                 onValueChange = {},
+                label = "时间",
                 readOnly = true,
-                enabled = false,
-                label = { Text("时间") },
-                shape = RoundedCornerShape(AppRadius.sm),
                 modifier = Modifier.fillMaxWidth(),
-                colors = OutlinedTextFieldDefaults.colors(
-                    disabledTextColor = MaterialTheme.colorScheme.onSurface,
-                    disabledBorderColor = MaterialTheme.colorScheme.outline,
-                    disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            )
-            Box(
-                modifier = Modifier
-                    .matchParentSize()
-                    .clickable { showDatePicker = true }
+                onClick = { showDatePicker = true }
             )
         }
         TextButton(onClick = { onTimeChange(System.currentTimeMillis()) }) {
@@ -436,17 +496,14 @@ fun DescriptionField(
     description: String,
     onDescriptionChange: (String) -> Unit
 ) {
-    OutlinedTextField(
+    LedgerField(
         value = description,
         onValueChange = onDescriptionChange,
-        label = { Text("说明（可选）") },
-        placeholder = { Text("写点什么吧…") },
-        shape = RoundedCornerShape(AppRadius.sm),
+        label = "说明（可选）",
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = AppSpacing.md, vertical = AppSpacing.xs),
+            .padding(vertical = AppSpacing.xs),
         singleLine = true,
-        maxLines = 1,
         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done)
     )
 }

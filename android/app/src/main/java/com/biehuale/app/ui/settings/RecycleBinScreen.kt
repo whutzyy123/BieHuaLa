@@ -3,7 +3,6 @@ package com.biehuale.app.ui.settings
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -12,26 +11,14 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.DeleteForever
-import androidx.compose.material.icons.filled.Restore
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -40,23 +27,25 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.biehuale.app.domain.model.TransactionType
+import com.biehuale.app.ui.common.EmptyState
+import com.biehuale.app.ui.common.LedgerConfirm
+import com.biehuale.app.ui.common.LoadingState
+import com.biehuale.app.ui.common.SectionPanel
+import com.biehuale.app.ui.common.SubScreenScaffold
+import com.biehuale.app.ui.icons.BhlIcons
 import com.biehuale.app.ui.theme.AppSemanticColors
-import com.biehuale.app.ui.theme.BieHuaLeTheme
+import com.biehuale.app.ui.theme.AppSpacing
 import com.biehuale.app.ui.theme.MoneyFontFamily
 import com.biehuale.app.util.DateExt.toDateTimeString
 import com.biehuale.app.util.Money.toDisplayString
 
 /**
- * 回收站 Screen
- *
- * 详见 docs/PRD.md §6.2
+ * 回收站 Screen（docs/PRD.md §6.2）
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -79,31 +68,17 @@ fun RecycleBinScreen(
         }
     }
 
-    Scaffold(
+    SubScreenScaffold(
+        title = "回收站",
+        onBack = onBack,
         modifier = modifier,
-        containerColor = androidx.compose.ui.graphics.Color.Transparent,
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text("回收站", style = com.biehuale.app.ui.theme.ScreenTitleStyle)
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
-                    }
-                },
-                actions = {
-                    if (uiState.items.isNotEmpty()) {
-                        TextButton(onClick = { showEmptyConfirm = true }) {
-                            Text("清空", color = MaterialTheme.colorScheme.error)
-                        }
-                    }
-                },
-                colors = androidx.compose.material3.TopAppBarDefaults.topAppBarColors(
-                    containerColor = androidx.compose.ui.graphics.Color.Transparent
-                )
-            )
+        snackbarHostState = snackbarHostState,
+        actions = {
+            if (uiState.items.isNotEmpty()) {
+                TextButton(onClick = { showEmptyConfirm = true }) {
+                    Text("清空", color = MaterialTheme.colorScheme.error)
+                }
+            }
         }
     ) { padding ->
         Box(
@@ -112,25 +87,37 @@ fun RecycleBinScreen(
                 .padding(padding)
         ) {
             when {
-                uiState.isLoading -> CenterText("加载中…")
-                uiState.items.isEmpty() -> EmptyRecycleState(modifier = Modifier.fillMaxSize())
-                else -> LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(com.biehuale.app.ui.theme.AppSpacing.md)
+                uiState.isLoading -> LoadingState()
+                uiState.items.isEmpty() -> EmptyState(
+                    title = "回收站是空的",
+                    subtitle = "删除的账会在 30 天内保留，可在此恢复",
+                    icon = BhlIcons.Restore,
+                    modifier = Modifier.fillMaxSize()
+                )
+                else -> Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(vertical = AppSpacing.sm)
                 ) {
-                    item {
-                        Text(
-                            text = "共 ${uiState.items.size} 项，30 天后自动清理",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    items(uiState.items, key = { it.transaction.id }) { item ->
-                        RecycleBinItemCard(
-                            item = item,
-                            onRestore = { viewModel.restore(item.transaction.id) },
-                            onHardDelete = { pendingDelete = item }
-                        )
+                    Text(
+                        text = "共 ${uiState.items.size} 项，30 天后自动清理",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = AppSpacing.md, vertical = AppSpacing.xs)
+                    )
+                    SectionPanel(
+                        contentPadding = 0.dp,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        LazyColumn(modifier = Modifier.fillMaxSize()) {
+                            items(uiState.items, key = { it.transaction.id }) { item ->
+                                RecycleBinItemCard(
+                                    item = item,
+                                    onRestore = { viewModel.restore(item.transaction.id) },
+                                    onHardDelete = { pendingDelete = item }
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -138,40 +125,30 @@ fun RecycleBinScreen(
     }
 
     if (showEmptyConfirm) {
-        AlertDialog(
-            onDismissRequest = { showEmptyConfirm = false },
-            title = { Text("清空回收站？") },
-            text = { Text("将永久删除所有 ${uiState.items.size} 项，无法恢复。") },
-            confirmButton = {
-                TextButton(onClick = {
-                    showEmptyConfirm = false
-                    viewModel.emptyBin()
-                }) {
-                    Text("清空", color = MaterialTheme.colorScheme.error)
-                }
+        LedgerConfirm(
+            title = "清空回收站？",
+            message = "将永久删除所有 ${uiState.items.size} 项，无法恢复。",
+            confirmText = "清空",
+            confirmIsDestructive = true,
+            onConfirm = {
+                showEmptyConfirm = false
+                viewModel.emptyBin()
             },
-            dismissButton = {
-                TextButton(onClick = { showEmptyConfirm = false }) { Text("取消") }
-            }
+            onDismiss = { showEmptyConfirm = false }
         )
     }
 
     pendingDelete?.let { item ->
-        AlertDialog(
-            onDismissRequest = { pendingDelete = null },
-            title = { Text("永久删除？") },
-            text = { Text("将彻底删除这笔账，无法恢复。") },
-            confirmButton = {
-                TextButton(onClick = {
-                    viewModel.hardDelete(item.transaction.id)
-                    pendingDelete = null
-                }) {
-                    Text("删除", color = MaterialTheme.colorScheme.error)
-                }
+        LedgerConfirm(
+            title = "永久删除？",
+            message = "将彻底删除这笔账，无法恢复。",
+            confirmText = "删除",
+            confirmIsDestructive = true,
+            onConfirm = {
+                viewModel.hardDelete(item.transaction.id)
+                pendingDelete = null
             },
-            dismissButton = {
-                TextButton(onClick = { pendingDelete = null }) { Text("取消") }
-            }
+            onDismiss = { pendingDelete = null }
         )
     }
 }
@@ -251,11 +228,11 @@ private fun RecycleBinItemCard(
             verticalAlignment = Alignment.CenterVertically
         ) {
             TextButton(onClick = onHardDelete) {
-                Icon(Icons.Filled.DeleteForever, contentDescription = null, tint = MaterialTheme.colorScheme.error)
+                Icon(BhlIcons.DeleteForever, contentDescription = null, tint = MaterialTheme.colorScheme.error)
                 Text("永久删除", color = MaterialTheme.colorScheme.error)
             }
             Button(onClick = onRestore) {
-                Icon(Icons.Filled.Restore, contentDescription = null)
+                Icon(BhlIcons.Restore, contentDescription = null)
                 Text("恢复")
             }
         }
@@ -263,46 +240,5 @@ private fun RecycleBinItemCard(
             thickness = 0.5.dp,
             color = MaterialTheme.colorScheme.outlineVariant
         )
-    }
-}
-
-@Composable
-private fun CenterText(text: String) {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text(text)
-    }
-}
-
-@Composable
-private fun EmptyRecycleState(modifier: Modifier = Modifier) {
-    Box(modifier = modifier, contentAlignment = Alignment.Center) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Icon(
-                imageVector = Icons.Filled.Restore,
-                contentDescription = null,
-                modifier = Modifier.height(64.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = "回收站是空的",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = "删除的账会在 30 天内保留，可在此恢复",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-private fun RecycleBinScreenPreview() {
-    BieHuaLeTheme {
-        CenterText("RecycleBinScreen Preview（需 Hilt）")
     }
 }

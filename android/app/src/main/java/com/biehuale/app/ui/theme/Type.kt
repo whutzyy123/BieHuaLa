@@ -9,7 +9,7 @@ import androidx.compose.ui.unit.sp
 import com.biehuale.app.R
 
 /**
- * Mist Teal Ledger — Typography（docs/UI_DESIGN.md §3.2）
+ * Clarity Teal — Typography（docs/UI_DESIGN.md §3.2）
  *
  * Serif 标题 · Sans 正文 · Mono 金额（tabular）
  */

@@ -152,6 +152,84 @@ class MigrationTest {
         db.close()
     }
 
+    @Test
+    fun migrate3to4_createsQuickRecordsTable() {
+        helper.createDatabase(TEST_DB, 3).apply {
+            execSQL(
+                """
+                INSERT INTO accounts (id, name, icon, color, initial_balance, is_archived, created_at, updated_at)
+                VALUES (1, '现金', NULL, NULL, 0, 0, 1000, 1000)
+                """.trimIndent()
+            )
+            execSQL(
+                """
+                INSERT INTO categories (id, name, icon, color, type, is_builtin, sort_order, is_archived, created_at, updated_at)
+                VALUES (1, '交通', 'directions_transit', '#2196F3', 'EXPENSE', 1, 1, 0, 1000, 1000)
+                """.trimIndent()
+            )
+            close()
+        }
+
+        val db = helper.runMigrationsAndValidate(
+            TEST_DB, 4, true,
+            AppDatabase.MIGRATION_1_2,
+            AppDatabase.MIGRATION_2_3,
+            AppDatabase.MIGRATION_3_4
+        )
+
+        db.execSQL(
+            """
+            INSERT INTO quick_records
+                (id, category_id, account_id, amount, description, sort_order, created_at, updated_at)
+            VALUES (1, 1, 1, 400, '坐地铁', 1, 2000, 2000)
+            """.trimIndent()
+        )
+        db.query("SELECT amount, description FROM quick_records WHERE id = 1").use { cursor ->
+            cursor.moveToFirst()
+            assertThat(cursor.getLong(0)).isEqualTo(400L)
+            assertThat(cursor.getString(1)).isEqualTo("坐地铁")
+        }
+        db.close()
+    }
+
+    @Test
+    fun migrate4to5_addsBalanceHotPathIndex() {
+        helper.createDatabase(TEST_DB, 4).apply { close() }
+
+        val db = helper.runMigrationsAndValidate(
+            TEST_DB, 5, true,
+            AppDatabase.MIGRATION_4_5
+        )
+
+        db.query(
+            "SELECT name FROM sqlite_master WHERE type='index' " +
+                "AND name='index_transactions_account_id_deleted_at_type'"
+        ).use { cursor ->
+            assertThat(cursor.moveToFirst()).isTrue()
+        }
+        db.close()
+    }
+
+    @Test
+    fun migrate5to6_addsTransferFeeColumn() {
+        helper.createDatabase(TEST_DB, 5).apply { close() }
+
+        val db = helper.runMigrationsAndValidate(
+            TEST_DB, 6, true,
+            AppDatabase.MIGRATION_5_6
+        )
+
+        db.query("PRAGMA table_info(transactions)").use { cursor ->
+            val names = buildList {
+                while (cursor.moveToNext()) {
+                    add(cursor.getString(cursor.getColumnIndexOrThrow("name")))
+                }
+            }
+            assertThat(names).contains("fee")
+        }
+        db.close()
+    }
+
     companion object {
         private const val TEST_DB = "migration-test.db"
     }

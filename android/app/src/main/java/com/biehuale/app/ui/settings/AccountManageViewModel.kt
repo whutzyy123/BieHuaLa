@@ -4,42 +4,47 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.biehuale.app.data.db.entity.AccountEntity
 import com.biehuale.app.data.repository.AccountRepository
-import com.biehuale.app.data.repository.TransactionRepository
 import com.biehuale.app.util.Money
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
 class AccountManageViewModel @Inject constructor(
-    private val accountRepository: AccountRepository,
-    transactionRepository: TransactionRepository
+    private val accountRepository: AccountRepository
 ) : ViewModel() {
 
     /**
-     * 合并账户列表 + 交易流，转账后余额立即刷新
+     * 账户列表 + 一次聚合余额（无 N+1 / 不订全表流水）
      */
     val uiState: StateFlow<AccountManageUiState> = combine(
         accountRepository.observeActive(),
-        transactionRepository.observeAllActive()
-    ) { accounts, _ ->
+        accountRepository.observeActiveBalances()
+    ) { accounts, balanceRows ->
+        val balanceMap = balanceRows.associate { it.accountId to it.balance }
         val items = accounts.map { account ->
             AccountItem(
                 account = account,
-                balance = accountRepository.getBalance(account.id) ?: 0L
+                balance = balanceMap[account.id] ?: 0L
             )
         }
         AccountManageUiState(accounts = items, isLoading = false)
-    }.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000),
-        initialValue = AccountManageUiState(isLoading = true)
-    )
+    }
+        .flowOn(Dispatchers.Default)
+        .distinctUntilChanged()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = AccountManageUiState(isLoading = true)
+        )
 
     private val _events = MutableSharedFlow<AccountManageEvent>(extraBufferCapacity = 1)
     val events = _events
@@ -120,14 +125,14 @@ class AccountManageViewModel @Inject constructor(
     }
 }
 
-data class AccountManageUiState(
-    val accounts: List<AccountItem> = emptyList(),
-    val isLoading: Boolean = true
-)
-
 data class AccountItem(
     val account: AccountEntity,
     val balance: Long
+)
+
+data class AccountManageUiState(
+    val accounts: List<AccountItem> = emptyList(),
+    val isLoading: Boolean = false
 )
 
 sealed interface AccountManageEvent {

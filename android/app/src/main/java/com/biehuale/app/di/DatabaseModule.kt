@@ -7,6 +7,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import com.biehuale.app.data.db.AppDatabase
 import com.biehuale.app.data.db.dao.AccountDao
 import com.biehuale.app.data.db.dao.CategoryDao
+import com.biehuale.app.data.db.dao.QuickRecordDao
 import com.biehuale.app.data.db.dao.TransactionDao
 import com.biehuale.app.data.seed.DefaultCategories
 import dagger.Module
@@ -19,11 +20,11 @@ import javax.inject.Singleton
 /**
  * Hilt Database Module
  *
- * 职责：提供 Room AppDatabase + 3 个 DAO 的注入
+ * 职责：提供 Room AppDatabase + DAO 的注入
  *
  * 启动策略：
  *  - AppDatabase 单例（@Singleton）
- *  - 3 个 DAO 各自单例（Room 内部已单例管理，加 @Singleton 更显式）
+ *  - DAO 各自单例（Room 内部已单例管理，加 @Singleton 更显式）
  *
  * Seed 策略：
  *  - onCreate：首次创建数据库时同步插入内置类别（15 条 INSERT，通常 < 10ms）
@@ -52,9 +53,14 @@ object DatabaseModule {
         AppDatabase::class.java,
         AppDatabase.DATABASE_NAME
     )
-        .addMigrations(AppDatabase.MIGRATION_1_2, AppDatabase.MIGRATION_2_3)
+        .addMigrations(
+            AppDatabase.MIGRATION_1_2,
+            AppDatabase.MIGRATION_2_3,
+            AppDatabase.MIGRATION_3_4,
+            AppDatabase.MIGRATION_4_5,
+            AppDatabase.MIGRATION_5_6
+        )
         .addCallback(SeedCallback())
-        // TODO(Phase 5): 加 .setQueryCallback / .setQueryExecutor 性能优化
         .build()
 
     @Provides
@@ -68,6 +74,10 @@ object DatabaseModule {
     @Provides
     @Singleton
     fun provideTransactionDao(db: AppDatabase): TransactionDao = db.transactionDao()
+
+    @Provides
+    @Singleton
+    fun provideQuickRecordDao(db: AppDatabase): QuickRecordDao = db.quickRecordDao()
 }
 
 /**

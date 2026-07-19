@@ -242,9 +242,14 @@ class BackupImporter @Inject constructor(
                 TransactionType.EXPENSE, TransactionType.INCOME -> mappedCategoryId
             }
 
+            val fee = when (txType) {
+                TransactionType.TRANSFER -> txDto.fee.coerceAtLeast(0L)
+                else -> 0L
+            }
             if (!isValidTransaction(
                     type = txType,
                     amount = txDto.amount,
+                    fee = fee,
                     mappedAccountId = newAccountId,
                     mappedToAccountId = newToAccountId,
                     mappedCategoryId = newCategoryId
@@ -261,6 +266,7 @@ class BackupImporter @Inject constructor(
                 categoryId = newCategoryId,
                 accountId = newAccountId,
                 toAccountId = if (txType == TransactionType.TRANSFER) newToAccountId else null,
+                fee = fee,
                 description = txDto.description,
                 occurredAt = txDto.occurredAt,
                 createdAt = txDto.createdAt.takeIf { it > 0 } ?: now,
@@ -312,6 +318,7 @@ class BackupImporter @Inject constructor(
     private fun isValidTransaction(
         type: TransactionType,
         amount: Long,
+        fee: Long,
         mappedAccountId: Long,
         mappedToAccountId: Long?,
         mappedCategoryId: Long?
@@ -319,9 +326,12 @@ class BackupImporter @Inject constructor(
         if (amount <= 0L) return false
         return when (type) {
             TransactionType.EXPENSE, TransactionType.INCOME ->
-                mappedCategoryId != null
+                mappedCategoryId != null && fee == 0L
             TransactionType.TRANSFER ->
-                mappedToAccountId != null && mappedToAccountId != mappedAccountId
+                mappedToAccountId != null &&
+                    mappedToAccountId != mappedAccountId &&
+                    fee >= 0L &&
+                    fee < amount
         }
     }
 
@@ -333,6 +343,7 @@ class BackupImporter @Inject constructor(
                 tx.type.name,
                 tx.accountId.toString(),
                 (tx.toAccountId ?: -1L).toString(),
+                tx.fee.toString(),
                 (tx.categoryId ?: -1L).toString(),
                 tx.occurredAt.toString(),
                 tx.description.orEmpty()

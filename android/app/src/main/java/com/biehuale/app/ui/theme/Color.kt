@@ -3,46 +3,42 @@ package com.biehuale.app.ui.theme
 import androidx.compose.ui.graphics.Color
 
 /**
- * Mist Teal Ledger — 设计 Token（见 docs/UI_DESIGN.md §3.1）
- *
- * Brand Fallback：青绿色；语义色不随 Dynamic Color 漂移。
+ * Clarity Teal — 设计 Token（docs/UI_DESIGN.md v2.0 §3.1）
  */
 
 // ---------- Brand ----------
-val Brand40 = Color(0xFF006C5C)
-val Brand80 = Color(0xFF6FF7DD)
-val Brand20 = Color(0xFF005047)
+val Brand20 = Color(0xFF094A40)
+val Brand40 = Color(0xFF0B7A6A)
+val Brand80 = Color(0xFF3DDCBE)
 
 val BrandPrimaryLight = Brand40
 val BrandOnPrimaryLight = Color(0xFFFFFFFF)
-val BrandContainerLight = Color(0xFFD0F5EE)
-val BrandInkLight = Color(0xFF0E1F1C)
+val BrandContainerLight = Color(0xFFD5F3EC)
+val BrandInkLight = Color(0xFF0A1614)
 
 val BrandPrimaryDark = Brand80
-val BrandOnPrimaryDark = Brand20
+val BrandOnPrimaryDark = Color(0xFF003730)
 val BrandContainerDark = Brand20
-val BrandInkDark = Color(0xFFE6F2EF)
+val BrandInkDark = Color(0xFFE8F2F0)
 
-// ---------- Semantic（账本方向色）----------
-val SemanticExpenseLight = Color(0xFFB42318)
-val SemanticIncomeLight = Color(0xFF027A48)
-val SemanticTransferLight = Color(0xFF175CD3)
+// ---------- Semantic ----------
+val SemanticExpenseLight = Color(0xFFE11D48)
+val SemanticIncomeLight = Color(0xFF059669)
+val SemanticTransferLight = Color(0xFF2563EB)
 
-val SemanticExpenseDark = Color(0xFFF97066)
-val SemanticIncomeDark = Color(0xFF6CE9A6)
-val SemanticTransferDark = Color(0xFF84CAFF)
+val SemanticExpenseDark = Color(0xFFFB7185)
+val SemanticIncomeDark = Color(0xFF34D399)
+val SemanticTransferDark = Color(0xFF60A5FA)
 
-// ---------- Surface / atmosphere ----------
-val SurfaceBaseLight = Color(0xFFF3F7F5)
-val SurfaceBaseLightEnd = Color(0xFFEAF3F0)
-val SurfaceElevatedLight = Color(0xEBFFFFFF) // ~92% white
-val SurfaceMutedLight = Color(0xFFDDE8E4)
-val StrokeSubtleLight = Color(0xFFC5D5D0)
-val TextSecondaryLight = Color(0xFF5B6B66)
+// ---------- Surface ----------
+val SurfaceBaseLight = Color(0xFFF7F8F8)
+val SurfaceElevatedLight = Color(0xFFFFFFFF)
+val SurfaceMutedLight = Color(0xFFEEF1F0)
+val StrokeSubtleLight = Color(0xFFE2E6E5)
+val TextSecondaryLight = Color(0xFF5C6B66)
 
-val SurfaceBaseDark = Color(0xFF0C1412)
-val SurfaceBaseDarkEnd = Color(0xFF121A18)
-val SurfaceElevatedDark = Color(0xFF1A2421)
-val SurfaceMutedDark = Color(0xFF24302C)
-val StrokeSubtleDark = Color(0xFF2F3D39)
-val TextSecondaryDark = Color(0xFFA3B4AF)
+val SurfaceBaseDark = Color(0xFF121414)
+val SurfaceElevatedDark = Color(0xFF1C1F1E)
+val SurfaceMutedDark = Color(0xFF262A29)
+val StrokeSubtleDark = Color(0xFF2E3332)
+val TextSecondaryDark = Color(0xFF9AA8A4)

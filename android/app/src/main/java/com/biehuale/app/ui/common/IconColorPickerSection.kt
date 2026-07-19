@@ -9,10 +9,11 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -30,6 +31,7 @@ fun IconColorPickerSection(
     icons: List<String>,
     modifier: Modifier = Modifier
 ) {
+    val circle = CategoryIconMap.circleColor(colorHex, MaterialTheme.colorScheme.primary)
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text("颜色", style = MaterialTheme.typography.labelMedium)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -51,14 +53,32 @@ fun IconColorPickerSection(
                 )
             }
         }
-        Text("图标：$icon", style = MaterialTheme.typography.labelMedium)
-        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text("图标", style = MaterialTheme.typography.labelMedium)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             icons.forEach { key ->
-                FilterChip(
-                    selected = icon == key,
-                    onClick = { onIconChange(key) },
-                    label = { Text(key, style = MaterialTheme.typography.labelSmall) }
-                )
+                val selected = icon == key
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(
+                            if (selected) circle.copy(alpha = 0.22f)
+                            else MaterialTheme.colorScheme.surfaceVariant
+                        )
+                        .then(
+                            if (selected) Modifier.border(2.dp, MaterialTheme.colorScheme.primary, CircleShape)
+                            else Modifier
+                        )
+                        .clickable { onIconChange(key) },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = CategoryIconMap.iconFor(key),
+                        contentDescription = key,
+                        tint = if (selected) circle else MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
             }
         }
     }

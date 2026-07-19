@@ -1,73 +1,51 @@
 package com.biehuale.app.ui.settings
 
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.AccountBalanceWallet
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.biehuale.app.data.db.entity.AccountEntity
+import com.biehuale.app.ui.common.EmptyState
 import com.biehuale.app.ui.common.IconColorPickerSection
 import com.biehuale.app.ui.common.IconColorPresets
-import com.biehuale.app.ui.common.parseColorOrDefault
-import com.biehuale.app.ui.theme.BieHuaLeTheme
+import com.biehuale.app.ui.common.LedgerConfirm
+import com.biehuale.app.ui.common.LoadingState
+import com.biehuale.app.ui.common.ManageListRow
+import com.biehuale.app.ui.common.SectionPanel
+import com.biehuale.app.ui.common.SubScreenScaffold
+import com.biehuale.app.ui.icons.BhlIcons
+import com.biehuale.app.ui.theme.AppSpacing
 import com.biehuale.app.ui.theme.MoneyFontFamily
 import com.biehuale.app.util.Money.toDisplayString
 import com.biehuale.app.util.Money.toMoneyString
@@ -75,16 +53,9 @@ import com.biehuale.app.util.Money.toMoneyString
 /**
  * 账户管理 Screen
  *
- * 详见 docs/DEV_PLAN.md §5 Task 2.1
- *
- * 关键交互：
- *  - 列表：图标 + 名字 + 余额
- *  - FAB 新建
- *  - 点击行 → 弹编辑对话框
- *  - "..." 菜单 → 归档
- *  - TopAppBar 返回按钮
+ * 关键交互：列表（图标 + 名字 + 余额）、FAB 新建、点击编辑、菜单归档。
  */
-@OptIn(ExperimentalMaterial3Api::class, androidx.compose.foundation.ExperimentalFoundationApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AccountManageScreen(
     onBack: () -> Unit,
@@ -110,67 +81,49 @@ fun AccountManageScreen(
         }
     }
 
-    Scaffold(
+    SubScreenScaffold(
+        title = "账户管理",
+        onBack = onBack,
         modifier = modifier,
-        containerColor = Color.Transparent,
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text("账户管理", style = com.biehuale.app.ui.theme.ScreenTitleStyle)
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
-                    }
-                },
-                colors = androidx.compose.material3.TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent
-                )
-            )
-        },
+        snackbarHostState = snackbarHostState,
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 onClick = { showEditDialog = EditTarget.New },
-                icon = { Icon(Icons.Filled.Add, contentDescription = null) },
+                icon = { Icon(BhlIcons.Add, contentDescription = null) },
                 text = { Text("新建账户") }
             )
-        },
-        snackbarHost = { SnackbarHost(snackbarHostState) }
+        }
     ) { padding ->
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
+                .padding(vertical = AppSpacing.sm)
         ) {
             when {
-                uiState.isLoading -> {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text("加载中…")
-                    }
-                }
+                uiState.isLoading -> LoadingState()
                 uiState.accounts.isEmpty() -> {
-                    com.biehuale.app.ui.common.EmptyState(
+                    EmptyState(
                         title = "还没有账户",
                         subtitle = "点下方按钮新建你的第一个账户",
-                        icon = Icons.Filled.AccountBalanceWallet,
+                        icon = BhlIcons.Wallet,
                         actionText = "新建账户",
                         onAction = { showEditDialog = EditTarget.New }
                     )
                 }
                 else -> {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(com.biehuale.app.ui.theme.AppSpacing.md)
+                    SectionPanel(
+                        contentPadding = 0.dp,
+                        modifier = Modifier.weight(1f)
                     ) {
-                        items(uiState.accounts, key = { it.account.id }) { item ->
-                            AccountListItem(
-                                item = item,
-                                onClick = { showEditDialog = EditTarget.Edit(item.account) },
-                                onArchive = { viewModel.archive(item.account.id) }
-                            )
+                        LazyColumn(modifier = Modifier.fillMaxSize()) {
+                            items(uiState.accounts, key = { it.account.id }) { item ->
+                                AccountListItem(
+                                    item = item,
+                                    onClick = { showEditDialog = EditTarget.Edit(item.account) },
+                                    onArchive = { viewModel.archive(item.account.id) }
+                                )
+                            }
                         }
                     }
                 }
@@ -206,53 +159,30 @@ private fun AccountListItem(
     var menuExpanded by remember { mutableStateOf(false) }
     var showArchiveConfirm by remember { mutableStateOf(false) }
 
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .combinedClickable(
-                    onClick = onClick,
-                    onLongClick = { menuExpanded = true }
-                )
-                .padding(horizontal = 16.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(10.dp)
-                    .clip(CircleShape)
-                    .background(parseColorOrDefault(item.account.colorHex, MaterialTheme.colorScheme.primary))
-                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape)
+    ManageListRow(
+        title = item.account.name,
+        subtitle = "初始余额 ${item.account.initialBalance.toDisplayString()}",
+        iconKey = item.account.icon,
+        colorHex = item.account.colorHex,
+        onClick = onClick,
+        onLongClick = { menuExpanded = true },
+        trailingContent = {
+            Text(
+                text = item.balance.toDisplayString(),
+                style = MaterialTheme.typography.titleMedium,
+                fontFamily = MoneyFontFamily,
+                fontWeight = FontWeight.SemiBold,
+                color = if (item.balance < 0) {
+                    MaterialTheme.colorScheme.error
+                } else {
+                    MaterialTheme.colorScheme.onSurface
+                }
             )
-            Spacer(modifier = Modifier.size(12.dp))
-
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = item.account.name,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium
-                )
-                Text(
-                    text = "初始余额 ${item.account.initialBalance.toDisplayString()}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-
-            Column(horizontalAlignment = Alignment.End) {
-                Text(
-                    text = item.balance.toDisplayString(),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontFamily = MoneyFontFamily,
-                    fontWeight = FontWeight.SemiBold,
-                    color = if (item.balance < 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
-                )
-            }
-
-            // 菜单按钮
+        },
+        trailing = {
             Box {
                 IconButton(onClick = { menuExpanded = true }) {
-                    Icon(Icons.Filled.MoreVert, contentDescription = "更多")
+                    Icon(BhlIcons.MoreVert, contentDescription = "更多")
                 }
                 DropdownMenu(
                     expanded = menuExpanded,
@@ -260,7 +190,7 @@ private fun AccountListItem(
                 ) {
                     DropdownMenuItem(
                         text = { Text("编辑") },
-                        leadingIcon = { Icon(Icons.Filled.Edit, null) },
+                        leadingIcon = { Icon(BhlIcons.Edit, null) },
                         onClick = {
                             menuExpanded = false
                             onClick()
@@ -269,7 +199,9 @@ private fun AccountListItem(
                     HorizontalDivider()
                     DropdownMenuItem(
                         text = { Text("归档", color = MaterialTheme.colorScheme.error) },
-                        leadingIcon = { Icon(Icons.Filled.Delete, null, tint = MaterialTheme.colorScheme.error) },
+                        leadingIcon = {
+                            Icon(BhlIcons.Delete, null, tint = MaterialTheme.colorScheme.error)
+                        },
                         onClick = {
                             menuExpanded = false
                             showArchiveConfirm = true
@@ -278,32 +210,19 @@ private fun AccountListItem(
                 }
             }
         }
-        HorizontalDivider(
-            thickness = 0.5.dp,
-            color = MaterialTheme.colorScheme.outlineVariant
-        )
-    }
+    )
 
     if (showArchiveConfirm) {
-        AlertDialog(
-            onDismissRequest = { showArchiveConfirm = false },
-            title = { Text("归档账户？") },
-            text = {
-                Text("归档后「${item.account.name}」将从列表隐藏，但历史账仍会显示该账户名称。")
+        LedgerConfirm(
+            title = "归档账户？",
+            message = "归档后「${item.account.name}」将从列表隐藏，但历史账仍会显示该账户名称。",
+            confirmText = "归档",
+            confirmIsDestructive = true,
+            onConfirm = {
+                showArchiveConfirm = false
+                onArchive()
             },
-            confirmButton = {
-                TextButton(onClick = {
-                    showArchiveConfirm = false
-                    onArchive()
-                }) {
-                    Text("归档", color = MaterialTheme.colorScheme.error)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showArchiveConfirm = false }) {
-                    Text("取消")
-                }
-            }
+            onDismiss = { showArchiveConfirm = false }
         )
     }
 }
@@ -378,12 +297,4 @@ private fun AccountEditDialog(
             }
         }
     )
-}
-
-@Preview(showBackground = true)
-@Composable
-private fun AccountManageScreenPreview() {
-    BieHuaLeTheme {
-        // Preview 无 Hilt
-    }
 }

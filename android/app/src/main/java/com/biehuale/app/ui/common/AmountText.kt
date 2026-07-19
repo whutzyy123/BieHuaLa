@@ -1,8 +1,6 @@
 package com.biehuale.app.ui.common
 
-import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.offset
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -19,15 +17,17 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.biehuale.app.domain.model.TransactionType
+import com.biehuale.app.ui.theme.AppMotion
 import com.biehuale.app.ui.theme.AppSemanticColors
 import com.biehuale.app.ui.theme.MoneyHeroStyle
 import com.biehuale.app.ui.theme.MoneyRowStyle
 import com.biehuale.app.util.Money.toDisplayString
+import kotlinx.coroutines.delay
 
 enum class AmountRole { Hero, Row, Detail }
 
 /**
- * 统一金额展示：Mono tabular + 语义色 + 可选入场动效。
+ * 统一金额展示：Mono tabular + 语义色 + 可选入场动效（fade + 上移）。
  */
 @Composable
 fun AmountText(
@@ -62,21 +62,27 @@ fun AmountText(
         else -> FontWeight.SemiBold
     }
 
+    // 入场只播一次，避免账单切月/金额刷新时反复闪动
+    var hasPlayedEntrance by remember { mutableStateOf(false) }
     var visible by remember { mutableStateOf(!animateEntrance) }
-    LaunchedEffect(animateEntrance, amountCents) {
-        if (animateEntrance) {
+    LaunchedEffect(animateEntrance) {
+        if (animateEntrance && !hasPlayedEntrance) {
             visible = false
+            delay(16)
+            visible = true
+            hasPlayedEntrance = true
+        } else if (!animateEntrance) {
             visible = true
         }
     }
     val alpha by animateFloatAsState(
         targetValue = if (visible) 1f else 0f,
-        animationSpec = tween(durationMillis = 150, easing = FastOutSlowInEasing),
+        animationSpec = AppMotion.amount(),
         label = "amountAlpha"
     )
     val offsetY by animateFloatAsState(
-        targetValue = if (visible) 0f else 4f,
-        animationSpec = tween(durationMillis = 150, easing = FastOutSlowInEasing),
+        targetValue = if (visible) 0f else AppMotion.AmountEnterOffset.value,
+        animationSpec = AppMotion.amount(),
         label = "amountOffset"
     )
 

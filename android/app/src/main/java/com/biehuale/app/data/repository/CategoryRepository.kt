@@ -1,6 +1,7 @@
 package com.biehuale.app.data.repository
 
 import com.biehuale.app.data.db.dao.CategoryDao
+import com.biehuale.app.data.db.dao.QuickRecordDao
 import com.biehuale.app.data.db.entity.CategoryEntity
 import com.biehuale.app.data.seed.DefaultCategories
 import com.biehuale.app.domain.model.CategoryType
@@ -17,15 +18,13 @@ import javax.inject.Singleton
  */
 @Singleton
 class CategoryRepository @Inject constructor(
-    private val categoryDao: CategoryDao
+    private val categoryDao: CategoryDao,
+    private val quickRecordDao: QuickRecordDao
 ) {
 
     fun observeAllActive(): Flow<List<CategoryEntity>> = categoryDao.observeAllActive()
 
     fun observeAll(): Flow<List<CategoryEntity>> = categoryDao.observeAll()
-
-    fun observeByType(type: CategoryType): Flow<List<CategoryEntity>> =
-        categoryDao.observeByType(type.name)
 
     suspend fun getById(id: Long): CategoryEntity? = categoryDao.getById(id)
 
@@ -65,14 +64,8 @@ class CategoryRepository @Inject constructor(
     }
 
     suspend fun archive(id: Long) {
+        quickRecordDao.deleteByCategoryId(id)
         categoryDao.archive(id, System.currentTimeMillis())
-    }
-
-    suspend fun restore(id: Long) {
-        val category = categoryDao.getById(id) ?: throw IllegalStateException("类别不存在")
-        val conflict = categoryDao.findActiveByTypeAndName(category.type.name, category.name)
-        require(conflict == null || conflict.id == id) { "同类型下已存在同名活跃类别，无法恢复" }
-        categoryDao.restore(id, System.currentTimeMillis())
     }
 
     /**

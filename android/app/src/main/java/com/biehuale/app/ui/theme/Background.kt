@@ -6,11 +6,9 @@ import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 
 /**
- * 纸感氛围底：竖向微渐变（浅色晨雾青 / 深色墨绿炭）。
+ * Clarity Teal 全局底：近白 / 近黑实色，无雾青渐变与噪点。
  */
 @Composable
 fun AppScaffoldBackground(
@@ -18,21 +16,10 @@ fun AppScaffoldBackground(
     content: @Composable BoxScope.() -> Unit
 ) {
     val isDark = LocalIsDarkTheme.current
-    val brush = Brush.verticalGradient(
-        colors = if (isDark) {
-            listOf(SurfaceBaseDark, SurfaceBaseDarkEnd)
-        } else {
-            listOf(SurfaceBaseLight, SurfaceBaseLightEnd)
-        }
-    )
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(brush)
-            .background(
-                // 2–3% 冷青噪点感（极淡叠色，避免塑料纯色）
-                if (isDark) Color(0x08006C5C) else Color(0x0A006C5C)
-            ),
+            .background(if (isDark) SurfaceBaseDark else SurfaceBaseLight),
         content = content
     )
 }

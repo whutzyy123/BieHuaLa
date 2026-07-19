@@ -15,10 +15,10 @@ import kotlinx.coroutines.flow.Flow
  *  balance = initial_balance
  *          + Σ(INCOME  where account_id = :id AND deleted_at IS NULL)
  *          - Σ(EXPENSE where account_id = :id AND deleted_at IS NULL)
- *          - Σ(TRANSFER where account_id = :id AND deleted_at IS NULL)
- *          + Σ(TRANSFER where to_account_id = :id AND deleted_at IS NULL)
+ *          - Σ(TRANSFER.amount where account_id = :id AND deleted_at IS NULL)
+ *          + Σ(TRANSFER.amount - TRANSFER.fee where to_account_id = :id AND deleted_at IS NULL)
  *
- * 详见 docs/DEV_PLAN.md §5 Task 2.3
+ * 详见 docs/PRD.md §6.1
  */
 @Dao
 interface AccountDao {
@@ -54,11 +54,33 @@ interface AccountDao {
                 WHERE account_id = a.id AND type = 'EXPENSE' AND deleted_at IS NULL), 0)
             - COALESCE((SELECT SUM(amount) FROM transactions
                 WHERE account_id = a.id AND type = 'TRANSFER' AND deleted_at IS NULL), 0)
-            + COALESCE((SELECT SUM(amount) FROM transactions
+            + COALESCE((SELECT SUM(amount - fee) FROM transactions
                 WHERE to_account_id = a.id AND type = 'TRANSFER' AND deleted_at IS NULL), 0)
         FROM accounts a WHERE a.id = :id
     """)
     suspend fun getBalance(id: Long): Long?
+
+    /**
+     * 一次查出所有活跃账户余额（避免 AccountManage N+1）
+     */
+    @Query("""
+        SELECT
+            a.id AS accountId,
+            a.initial_balance
+            + COALESCE((SELECT SUM(amount) FROM transactions
+                WHERE account_id = a.id AND type = 'INCOME' AND deleted_at IS NULL), 0)
+            - COALESCE((SELECT SUM(amount) FROM transactions
+                WHERE account_id = a.id AND type = 'EXPENSE' AND deleted_at IS NULL), 0)
+            - COALESCE((SELECT SUM(amount) FROM transactions
+                WHERE account_id = a.id AND type = 'TRANSFER' AND deleted_at IS NULL), 0)
+            + COALESCE((SELECT SUM(amount - fee) FROM transactions
+                WHERE to_account_id = a.id AND type = 'TRANSFER' AND deleted_at IS NULL), 0)
+            AS balance
+        FROM accounts a
+        WHERE a.is_archived = 0
+        ORDER BY a.id ASC
+    """)
+    fun observeActiveBalances(): Flow<List<AccountBalanceRow>>
 
     // ---------- 写入 ----------
 
@@ -74,7 +96,4 @@ interface AccountDao {
      */
     @Query("UPDATE accounts SET is_archived = 1, updated_at = :now WHERE id = :id")
     suspend fun archive(id: Long, now: Long)
-
-    @Query("UPDATE accounts SET is_archived = 0, updated_at = :now WHERE id = :id")
-    suspend fun restore(id: Long, now: Long)
 }

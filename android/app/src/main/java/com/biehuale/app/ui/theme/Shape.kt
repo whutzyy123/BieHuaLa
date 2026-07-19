@@ -13,11 +13,11 @@ object AppSpacing {
     val xl = 32.dp
 }
 
-/** 圆角 Token */
+/** 圆角 Token — Clarity Teal 中等现代圆 */
 object AppRadius {
-    val sm = 10.dp
+    val sm = 12.dp
     val md = 16.dp
-    val lg = 24.dp
+    val lg = 20.dp
 }
 
 val AppShapes = Shapes(

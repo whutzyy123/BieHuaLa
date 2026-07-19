@@ -55,7 +55,9 @@ import com.biehuale.app.domain.model.TransactionType
         Index(value = ["account_id", "occurred_at"]),
         Index(value = ["category_id", "occurred_at"]),
         Index(value = ["deleted_at"]),
-        Index(value = ["to_account_id"])
+        Index(value = ["to_account_id"]),
+        /** 余额聚合热路径：account + deleted + type */
+        Index(value = ["account_id", "deleted_at", "type"])
     ]
 )
 data class TransactionEntity(
@@ -76,6 +78,13 @@ data class TransactionEntity(
 
     @ColumnInfo(name = "to_account_id")
     val toAccountId: Long? = null,
+
+    /**
+     * 转账手续费（分）。仅 TRANSFER 有意义；其它类型必须为 0。
+     * 转出扣 [amount]，转入实收 [amount] - [fee]。
+     */
+    @ColumnInfo(name = "fee")
+    val fee: Long = 0L,
 
     /** 说明（≤200 字符，可空） */
     @ColumnInfo(name = "description")
