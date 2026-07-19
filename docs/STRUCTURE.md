@@ -1,6 +1,6 @@
 # 别花乐 (BieHuaLe) - 目录结构说明
 
-> **配套文档**：[PRD.md](./PRD.md) · [DEV_PLAN.md](./DEV_PLAN.md) · [AGENTS.md](../AGENTS.md)
+> **配套文档**：[PRD.md](./PRD.md) · [UI_DESIGN.md](./UI_DESIGN.md) · [DEV_PLAN.md](./DEV_PLAN.md) · [AGENTS.md](../AGENTS.md)
 
 ## 顶层结构
 
@@ -9,6 +9,7 @@ BieHuaLe/
 ├── android/                    # Android Studio 项目根
 ├── docs/                       # 项目文档
 │   ├── PRD.md
+│   ├── UI_DESIGN.md            # 前端视觉与构图规范
 │   ├── DEV_PLAN.md
 │   ├── STRUCTURE.md            # 本文件
 │   ├── AUDIT_REPORT.md         # v0.1.0 产品方向审查报告

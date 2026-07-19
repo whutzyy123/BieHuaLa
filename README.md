@@ -54,6 +54,7 @@ BieHuaLe/
 │   └── settings.gradle.kts
 ├── docs/                          # 项目文档
 │   ├── PRD.md                     # 产品需求文档
+│   ├── UI_DESIGN.md               # 前端视觉与构图规范
 │   ├── DEV_PLAN.md                # 开发计划（5 phase / 36 task）
 │   ├── STRUCTURE.md               # 目录结构说明
 │   ├── AUDIT_REPORT.md            # v0.1.0 产品方向审查报告
@@ -190,6 +191,7 @@ cd android
 | 文档 | 说明 |
 |------|------|
 | [PRD.md](./docs/PRD.md) | 产品需求：做什么、为什么、范围 |
+| [UI_DESIGN.md](./docs/UI_DESIGN.md) | 前端设计：调性、Token、分屏构图（UI 改版必读） |
 | [DEV_PLAN.md](./docs/DEV_PLAN.md) | 开发计划：5 phase / 36 task / 命名规范 / git 规范 |
 | [STRUCTURE.md](./docs/STRUCTURE.md) | 目录结构：每个文件夹是干什么的 |
 | [CHANGELOG.md](./CHANGELOG.md) | 版本更新日志 |

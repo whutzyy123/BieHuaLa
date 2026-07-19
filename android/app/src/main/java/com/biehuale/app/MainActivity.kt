@@ -42,7 +42,9 @@ class MainActivity : ComponentActivity() {
         setContent {
             val themeMode by themePreferences.themeMode
                 .collectAsStateWithLifecycle(initialValue = ThemeMode.SYSTEM)
-            BieHuaLeTheme(themeMode = themeMode) {
+            val dynamicColor by themePreferences.dynamicColor
+                .collectAsStateWithLifecycle(initialValue = false)
+            BieHuaLeTheme(themeMode = themeMode, dynamicColor = dynamicColor) {
                 AppNav()
             }
         }

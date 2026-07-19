@@ -15,110 +15,109 @@ import androidx.compose.ui.platform.LocalContext
 import com.biehuale.app.data.preferences.ThemeMode
 
 /**
- * 别花乐 (BieHuaLe) - Theme
+ * Mist Teal Ledger Theme
  *
- * - Android 12+ 走 Dynamic Color（从系统壁纸取色）
- * - Android 11- 走 brand fallback（青绿色）
- * - 主题模式：SYSTEM（跟系统）/ LIGHT / DARK
+ * - 默认品牌色板优先；可选 Dynamic Color（设置开关，默认关）
+ * - 主题模式：SYSTEM / LIGHT / DARK
  *
- * 详见 docs/PRD.md §7.1、§7.2。
+ * 详见 docs/UI_DESIGN.md、docs/PRD.md §7.1–7.2。
  */
 
 /** 与 [BieHuaLeTheme] 的实际亮/暗一致（强制主题时不等于系统） */
 val LocalIsDarkTheme = staticCompositionLocalOf { false }
 
-// ---------- 浅色 fallback ----------
-private val IncomeGreenLight = Color(0xFF2E7D32)
-private val ExpenseRedLight = Color(0xFFC62828)
-private val TransferBlueLight = Color(0xFF1565C0)
-
 private val LightFallbackScheme = lightColorScheme(
-    primary = Brand40,
-    onPrimary = Color.White,
-    primaryContainer = Brand80,
+    primary = BrandPrimaryLight,
+    onPrimary = BrandOnPrimaryLight,
+    primaryContainer = BrandContainerLight,
     onPrimaryContainer = Brand20,
 
-    secondary = Brand40,
-    onSecondary = Color.White,
-    secondaryContainer = Brand80,
+    secondary = BrandPrimaryLight,
+    onSecondary = BrandOnPrimaryLight,
+    secondaryContainer = BrandContainerLight,
     onSecondaryContainer = Brand20,
 
-    tertiary = IncomeGreenLight,
+    tertiary = SemanticIncomeLight,
     onTertiary = Color.White,
 
-    background = Color(0xFFFCFCFC),
-    onBackground = Color(0xFF1A1C1B),
-    surface = Color(0xFFFCFCFC),
-    onSurface = Color(0xFF1A1C1B),
-    surfaceVariant = Color(0xFFDAE5E1),
-    onSurfaceVariant = Color(0xFF3F4946),
+    background = SurfaceBaseLight,
+    onBackground = BrandInkLight,
+    surface = SurfaceBaseLight,
+    onSurface = BrandInkLight,
+    surfaceVariant = SurfaceMutedLight,
+    onSurfaceVariant = TextSecondaryLight,
+    surfaceContainerLowest = SurfaceBaseLight,
+    surfaceContainerLow = SurfaceElevatedLight,
+    surfaceContainer = SurfaceElevatedLight,
+    surfaceContainerHigh = SurfaceMutedLight,
+    surfaceContainerHighest = SurfaceMutedLight,
 
-    error = ExpenseRedLight,
+    error = SemanticExpenseLight,
     onError = Color.White,
     errorContainer = Color(0xFFFFDAD6),
     onErrorContainer = Color(0xFF410002),
 
-    outline = Color(0xFF6F7976),
-    outlineVariant = Color(0xFFBEC9C5)
+    outline = TextSecondaryLight,
+    outlineVariant = StrokeSubtleLight
 )
 
-// ---------- 深色 fallback ----------
-private val IncomeGreenDark = Color(0xFF81C784)
-private val ExpenseRedDark = Color(0xFFEF9A9A)
-private val TransferBlueDark = Color(0xFF64B5F6)
-
 private val DarkFallbackScheme = darkColorScheme(
-    primary = Brand80,
-    onPrimary = Brand20,
-    primaryContainer = Brand40,
+    primary = BrandPrimaryDark,
+    onPrimary = BrandOnPrimaryDark,
+    primaryContainer = BrandContainerDark,
     onPrimaryContainer = Brand80,
 
-    secondary = Brand80,
-    onSecondary = Brand20,
-    secondaryContainer = Brand40,
+    secondary = BrandPrimaryDark,
+    onSecondary = BrandOnPrimaryDark,
+    secondaryContainer = BrandContainerDark,
     onSecondaryContainer = Brand80,
 
-    tertiary = IncomeGreenDark,
+    tertiary = SemanticIncomeDark,
     onTertiary = Color(0xFF003910),
 
-    background = Color(0xFF121212),
-    onBackground = Color(0xFFE2E3E1),
-    surface = Color(0xFF121212),
-    onSurface = Color(0xFFE2E3E1),
-    surfaceVariant = Color(0xFF3F4946),
-    onSurfaceVariant = Color(0xFFBEC9C5),
+    background = SurfaceBaseDark,
+    onBackground = BrandInkDark,
+    surface = SurfaceBaseDark,
+    onSurface = BrandInkDark,
+    surfaceVariant = SurfaceMutedDark,
+    onSurfaceVariant = TextSecondaryDark,
+    surfaceContainerLowest = SurfaceBaseDark,
+    surfaceContainerLow = SurfaceElevatedDark,
+    surfaceContainer = SurfaceElevatedDark,
+    surfaceContainerHigh = SurfaceMutedDark,
+    surfaceContainerHighest = SurfaceMutedDark,
 
-    error = ExpenseRedDark,
+    error = SemanticExpenseDark,
     onError = Color(0xFF690005),
     errorContainer = Color(0xFF93000A),
     onErrorContainer = Color(0xFFFFDAD6),
 
-    outline = Color(0xFF899390),
-    outlineVariant = Color(0xFF3F4946)
+    outline = TextSecondaryDark,
+    outlineVariant = StrokeSubtleDark
 )
 
 /**
- * 收入 / 支出 / 转账语义色 — 跟随 [LocalIsDarkTheme]，非系统暗色开关
+ * 收入 / 支出 / 转账语义色 — 跟随 [LocalIsDarkTheme]，不随 Dynamic Color 漂移
  */
 object AppSemanticColors {
     val income: Color
-        @Composable get() = if (LocalIsDarkTheme.current) IncomeGreenDark else IncomeGreenLight
+        @Composable get() = if (LocalIsDarkTheme.current) SemanticIncomeDark else SemanticIncomeLight
     val expense: Color
-        @Composable get() = if (LocalIsDarkTheme.current) ExpenseRedDark else ExpenseRedLight
+        @Composable get() = if (LocalIsDarkTheme.current) SemanticExpenseDark else SemanticExpenseLight
     val transfer: Color
-        @Composable get() = if (LocalIsDarkTheme.current) TransferBlueDark else TransferBlueLight
+        @Composable get() = if (LocalIsDarkTheme.current) SemanticTransferDark else SemanticTransferLight
 }
 
 /**
  * Theme 入口
  *
- * @param themeMode SYSTEM（跟系统）/ LIGHT（强制浅色）/ DARK（强制深色）
- * @param dynamicColor 是否使用 Material You Dynamic Color（Android 12+）
+ * @param themeMode SYSTEM / LIGHT / DARK
+ * @param dynamicColor 是否使用 Material You（默认 false，品牌优先）
  */
 @Composable
 fun BieHuaLeTheme(
     themeMode: ThemeMode = ThemeMode.SYSTEM,
-    dynamicColor: Boolean = true,
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val isDark = when (themeMode) {
@@ -140,6 +139,7 @@ fun BieHuaLeTheme(
         MaterialTheme(
             colorScheme = colorScheme,
             typography = AppTypography,
+            shapes = AppShapes,
             content = content
         )
     }

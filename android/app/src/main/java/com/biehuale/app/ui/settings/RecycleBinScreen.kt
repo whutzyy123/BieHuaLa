@@ -18,6 +18,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.Restore
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -80,10 +81,13 @@ fun RecycleBinScreen(
 
     Scaffold(
         modifier = modifier,
+        containerColor = androidx.compose.ui.graphics.Color.Transparent,
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text("回收站") },
+                title = {
+                    Text("回收站", style = com.biehuale.app.ui.theme.ScreenTitleStyle)
+                },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
@@ -95,7 +99,10 @@ fun RecycleBinScreen(
                             Text("清空", color = MaterialTheme.colorScheme.error)
                         }
                     }
-                }
+                },
+                colors = androidx.compose.material3.TopAppBarDefaults.topAppBarColors(
+                    containerColor = androidx.compose.ui.graphics.Color.Transparent
+                )
             )
         }
     ) { padding ->
@@ -109,8 +116,7 @@ fun RecycleBinScreen(
                 uiState.items.isEmpty() -> EmptyRecycleState(modifier = Modifier.fillMaxSize())
                 else -> LazyColumn(
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    contentPadding = PaddingValues(com.biehuale.app.ui.theme.AppSpacing.md)
                 ) {
                     item {
                         Text(
@@ -192,76 +198,71 @@ private fun RecycleBinItemCard(
         else -> item.category?.name ?: "未分类"
     }
 
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(8.dp)),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-    ) {
-        Column(modifier = Modifier.padding(12.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium
+                )
+                Text(
+                    text = item.account?.name ?: "—",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                if (!tx.description.isNullOrBlank()) {
                     Text(
-                        text = title,
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Medium
-                    )
-                    Text(
-                        text = item.account?.name ?: "—",
+                        text = tx.description,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    if (!tx.description.isNullOrBlank()) {
-                        Text(
-                            text = tx.description,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    Text(
-                        text = "删除于 ${tx.deletedAt?.toDateTimeString() ?: ""}",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
                 }
-                Column(horizontalAlignment = Alignment.End) {
-                    Text(
-                        text = "$sign${tx.amount.toDisplayString()}",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = amountColor,
-                        fontFamily = MoneyFontFamily,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "${item.daysUntilCleanup} 天后清理",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.error
-                    )
-                }
+                Text(
+                    text = "删除于 ${tx.deletedAt?.toDateTimeString() ?: ""}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
-            HorizontalDivider()
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 4.dp),
-                horizontalArrangement = Arrangement.End
-            ) {
-                TextButton(onClick = onHardDelete) {
-                    Icon(Icons.Filled.DeleteForever, contentDescription = null, tint = MaterialTheme.colorScheme.error)
-                    Text("永久删除", color = MaterialTheme.colorScheme.error)
-                }
-                Spacer(modifier = Modifier.padding(end = 8.dp))
-                TextButton(onClick = onRestore) {
-                    Icon(Icons.Filled.Restore, contentDescription = null)
-                    Text("恢复")
-                }
+            Column(horizontalAlignment = Alignment.End) {
+                Text(
+                    text = "$sign${tx.amount.toDisplayString()}",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = amountColor,
+                    fontFamily = MoneyFontFamily,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "${item.daysUntilCleanup} 天后清理",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.error
+                )
             }
         }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            TextButton(onClick = onHardDelete) {
+                Icon(Icons.Filled.DeleteForever, contentDescription = null, tint = MaterialTheme.colorScheme.error)
+                Text("永久删除", color = MaterialTheme.colorScheme.error)
+            }
+            Button(onClick = onRestore) {
+                Icon(Icons.Filled.Restore, contentDescription = null)
+                Text("恢复")
+            }
+        }
+        HorizontalDivider(
+            thickness = 0.5.dp,
+            color = MaterialTheme.colorScheme.outlineVariant
+        )
     }
 }
 

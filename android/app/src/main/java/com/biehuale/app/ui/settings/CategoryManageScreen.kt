@@ -23,7 +23,6 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.RestartAlt
 import androidx.compose.material3.AlertDialog
@@ -33,7 +32,8 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -99,9 +99,12 @@ fun CategoryManageScreen(
 
     Scaffold(
         modifier = modifier,
+        containerColor = Color.Transparent,
         topBar = {
             TopAppBar(
-                title = { Text("类别管理") },
+                title = {
+                    Text("类别管理", style = com.biehuale.app.ui.theme.ScreenTitleStyle)
+                },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
@@ -111,15 +114,18 @@ fun CategoryManageScreen(
                     IconButton(onClick = { showResetConfirm = true }) {
                         Icon(Icons.Filled.RestartAlt, contentDescription = "重置默认")
                     }
-                }
+                },
+                colors = androidx.compose.material3.TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.Transparent
+                )
             )
         },
         floatingActionButton = {
-            FloatingActionButton(
-                onClick = { showEditDialog = CategoryEditTarget.New(null) }
-            ) {
-                Icon(Icons.Filled.Add, contentDescription = "新建类别")
-            }
+            ExtendedFloatingActionButton(
+                onClick = { showEditDialog = CategoryEditTarget.New(null) },
+                icon = { Icon(Icons.Filled.Add, contentDescription = null) },
+                text = { Text("新建类别") }
+            )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
@@ -127,7 +133,6 @@ fun CategoryManageScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .background(MaterialTheme.colorScheme.background)
         ) {
             if (uiState.isLoading) {
                 Box(
@@ -138,8 +143,7 @@ fun CategoryManageScreen(
             } else {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                    contentPadding = PaddingValues(com.biehuale.app.ui.theme.AppSpacing.md)
                 ) {
                     item {
                         SectionHeader("支出 (${uiState.expenseCategories.size})")
@@ -229,33 +233,21 @@ private fun CategoryListItem(
     var menuExpanded by remember { mutableStateOf(false) }
     var showArchiveConfirm by remember { mutableStateOf(false) }
 
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(8.dp)),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-    ) {
+    Column(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
+                .clickable(onClick = onEdit)
+                .padding(horizontal = 16.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
                 modifier = Modifier
-                    .size(32.dp)
+                    .size(10.dp)
                     .clip(CircleShape)
-                    .background(parseColorOrDefault(category.colorHex, MaterialTheme.colorScheme.primary)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.Category,
-                    contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier.size(18.dp)
-                )
-            }
+                    .background(parseColorOrDefault(category.colorHex, MaterialTheme.colorScheme.primary))
+                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape)
+            )
             Spacer(modifier = Modifier.size(12.dp))
 
             Column(modifier = Modifier.weight(1f)) {
@@ -281,14 +273,6 @@ private fun CategoryListItem(
                     onDismissRequest = { menuExpanded = false }
                 ) {
                     DropdownMenuItem(
-                        text = { Text("编辑") },
-                        leadingIcon = { Icon(Icons.Filled.Edit, null) },
-                        onClick = {
-                            menuExpanded = false
-                            onEdit()
-                        }
-                    )
-                    DropdownMenuItem(
                         text = { Text("归档", color = MaterialTheme.colorScheme.error) },
                         leadingIcon = { Icon(Icons.Filled.Delete, null, tint = MaterialTheme.colorScheme.error) },
                         onClick = {
@@ -299,6 +283,10 @@ private fun CategoryListItem(
                 }
             }
         }
+        HorizontalDivider(
+            thickness = 0.5.dp,
+            color = MaterialTheme.colorScheme.outlineVariant
+        )
     }
 
     if (showArchiveConfirm) {

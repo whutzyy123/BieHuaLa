@@ -32,20 +32,20 @@ fun IconColorPickerSection(
 ) {
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text("颜色", style = MaterialTheme.typography.labelMedium)
-        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             IconColorPresets.COLORS.forEach { c ->
                 val selected = c.equals(colorHex, ignoreCase = true)
                 Box(
                     modifier = Modifier
-                        .size(28.dp)
+                        .size(32.dp)
                         .clip(CircleShape)
                         .background(parseColorOrDefault(c, MaterialTheme.colorScheme.primary))
                         .clickable { onColorChange(c) }
                         .then(
                             if (selected) {
-                                Modifier.border(2.dp, MaterialTheme.colorScheme.onSurface, CircleShape)
+                                Modifier.border(2.dp, MaterialTheme.colorScheme.onBackground, CircleShape)
                             } else {
-                                Modifier
+                                Modifier.border(1.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape)
                             }
                         )
                 )

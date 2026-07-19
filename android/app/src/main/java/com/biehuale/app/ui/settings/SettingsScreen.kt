@@ -3,8 +3,6 @@ package com.biehuale.app.ui.settings
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,23 +13,20 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.AutoAwesome
-import androidx.compose.material.icons.filled.Brightness6
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -42,24 +37,16 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.biehuale.app.data.preferences.ThemeMode
-import com.biehuale.app.ui.theme.BieHuaLeTheme
+import com.biehuale.app.ui.common.SettingsGroup
+import com.biehuale.app.ui.common.SettingsRow
+import com.biehuale.app.ui.theme.AppSpacing
+import com.biehuale.app.ui.theme.BrandSerif
+import com.biehuale.app.ui.theme.ScreenTitleStyle
 
-/**
- * 设置 Tab - Screen
- *
- * Phase 4 完整版：
- *  - 账户管理 / 类别管理（Phase 2）
- *  - 备份导出 / 导入（Phase 4）
- *  - 回收站（Phase 4）
- *  - 主题切换（Phase 4）
- *  - 关于
- */
 @Composable
 fun SettingsScreen(
     onNavigateToAccountManage: () -> Unit = {},
@@ -73,25 +60,21 @@ fun SettingsScreen(
     val accounts by settingsViewModel.accounts.collectAsStateWithLifecycle()
     val backupState by backupViewModel.state.collectAsStateWithLifecycle()
     val themeMode by appearanceViewModel.themeMode.collectAsStateWithLifecycle()
+    val dynamicColor by appearanceViewModel.dynamicColor.collectAsStateWithLifecycle()
 
     val snackbarHostState = remember { SnackbarHostState() }
     var showImportPreview by remember { mutableStateOf(false) }
     var showThemeDialog by remember { mutableStateOf(false) }
 
-    // SAF 启动器
     val createDocumentLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("application/json")
     ) { uri: Uri? ->
-        if (uri != null) {
-            backupViewModel.export(uri)
-        }
+        if (uri != null) backupViewModel.export(uri)
     }
     val openDocumentLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
     ) { uri: Uri? ->
-        if (uri != null) {
-            backupViewModel.previewImport(uri)
-        }
+        if (uri != null) backupViewModel.previewImport(uri)
     }
 
     LaunchedEffect(Unit) {
@@ -115,109 +98,129 @@ fun SettingsScreen(
         }
     }
     LaunchedEffect(backupState.pendingPreview) {
-        if (backupState.pendingPreview != null) {
-            showImportPreview = true
-        }
+        if (backupState.pendingPreview != null) showImportPreview = true
     }
 
     Box(modifier = modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+                .verticalScroll(rememberScrollState())
+                .padding(top = AppSpacing.md, bottom = AppSpacing.xl)
         ) {
-            SectionCard(title = "账户") {
-                SettingsItem(
-                    text = "管理账户",
+            SettingsGroup(title = "账户") {
+                SettingsRow(
+                    title = "管理账户",
                     subtitle = if (accounts.isEmpty()) "暂无账户，点这里新建" else "共 ${accounts.size} 个账户",
-                    onClick = onNavigateToAccountManage
+                    onClick = onNavigateToAccountManage,
+                    showDivider = false
                 )
             }
 
-            SectionCard(title = "类别") {
-                SettingsItem(
-                    text = "管理类别",
+            SettingsGroup(title = "类别") {
+                SettingsRow(
+                    title = "管理类别",
                     subtitle = "改名 / 归档 / 重置默认",
-                    onClick = onNavigateToCategoryManage
+                    onClick = onNavigateToCategoryManage,
+                    showDivider = false
                 )
             }
 
-            SectionCard(title = "数据") {
-                SettingsItem(
-                    text = "导出备份",
+            SettingsGroup(title = "数据") {
+                SettingsRow(
+                    title = "导出备份",
                     subtitle = if (backupState.isExporting) "导出中…" else "保存到 JSON 文件",
-                    onClick = {
-                        createDocumentLauncher.launch(backupViewModel.generateFileName())
-                    },
-                    enabled = !backupState.isBusy
+                    onClick = if (!backupState.isBusy) {
+                        { createDocumentLauncher.launch(backupViewModel.generateFileName()) }
+                    } else null
                 )
-                HorizontalDivider()
-                SettingsItem(
-                    text = "导入备份",
+                SettingsRow(
+                    title = "导入备份",
                     subtitle = when {
                         backupState.isPreviewing -> "读取中…"
                         backupState.isImporting -> "导入中…"
                         else -> "从 JSON 文件合并"
                     },
-                    onClick = {
-                        openDocumentLauncher.launch(arrayOf("application/json", "*/*"))
-                    },
-                    enabled = !backupState.isBusy
+                    onClick = if (!backupState.isBusy) {
+                        { openDocumentLauncher.launch(arrayOf("application/json", "*/*")) }
+                    } else null
                 )
-                HorizontalDivider()
-                SettingsItem(
-                    text = "回收站",
+                SettingsRow(
+                    title = "回收站",
                     subtitle = "30 天内的软删除账",
-                    onClick = onNavigateToRecycleBin
+                    onClick = onNavigateToRecycleBin,
+                    showDivider = false
                 )
             }
 
-            SectionCard(title = "外观") {
+            SettingsGroup(title = "外观") {
                 val themeLabel = when (themeMode) {
                     ThemeMode.SYSTEM -> "跟随系统"
                     ThemeMode.LIGHT -> "浅色"
                     ThemeMode.DARK -> "深色"
                 }
-                SettingsItem(
-                    text = "主题",
+                SettingsRow(
+                    title = "主题",
                     subtitle = "当前：$themeLabel",
                     onClick = { showThemeDialog = true }
                 )
+                SettingsRow(
+                    title = "跟随壁纸取色",
+                    subtitle = "Android 12+ Material You（默认关）",
+                    trailing = {
+                        Switch(
+                            checked = dynamicColor,
+                            onCheckedChange = appearanceViewModel::setDynamicColor
+                        )
+                    },
+                    showChevron = false,
+                    showDivider = false
+                )
             }
 
-            SectionCard(title = "关于") {
-                SettingsItem(
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = AppSpacing.md, vertical = AppSpacing.lg)
+            ) {
+                Text(
                     text = "别花乐",
-                    subtitle = "v${com.biehuale.app.BuildConfig.VERSION_NAME} · 个人记账 App"
+                    style = ScreenTitleStyle,
+                    fontFamily = BrandSerif,
+                    color = MaterialTheme.colorScheme.onBackground
                 )
-                HorizontalDivider()
-                SettingsItem(text = "隐私", subtitle = "完全本地 · 不联网 · 无追踪")
+                Spacer(modifier = Modifier.height(AppSpacing.xs))
+                Text(
+                    text = "完全本地 · 不联网",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(AppSpacing.xs))
+                Text(
+                    text = "v${com.biehuale.app.BuildConfig.VERSION_NAME}",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
 
             if (backupState.isBusy) {
-                Box(
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 8.dp),
-                    contentAlignment = Alignment.Center
+                        .padding(AppSpacing.md),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(20.dp),
-                            strokeWidth = 2.dp
-                        )
-                        Spacer(Modifier.padding(horizontal = 4.dp))
-                        Text(
-                            text = when {
-                                backupState.isExporting -> "导出中…"
-                                backupState.isPreviewing -> "读取中…"
-                                else -> "导入中…"
-                            },
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                    }
+                    CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                    Spacer(modifier = Modifier.size(8.dp))
+                    Text(
+                        text = when {
+                            backupState.isExporting -> "导出中…"
+                            backupState.isPreviewing -> "读取中…"
+                            else -> "导入中…"
+                        },
+                        style = MaterialTheme.typography.bodySmall
+                    )
                 }
             }
         }
@@ -228,7 +231,6 @@ fun SettingsScreen(
         )
     }
 
-    // 导入预览对话框
     backupState.pendingPreview?.let { preview ->
         if (showImportPreview) {
             ImportPreviewDialog(
@@ -243,7 +245,6 @@ fun SettingsScreen(
         }
     }
 
-    // 主题选择对话框
     if (showThemeDialog) {
         ThemePickerDialog(
             current = themeMode,
@@ -252,10 +253,6 @@ fun SettingsScreen(
         )
     }
 }
-
-// ============================================================
-// 子组件：对话框
-// ============================================================
 
 @Composable
 private fun ImportPreviewDialog(
@@ -270,11 +267,11 @@ private fun ImportPreviewDialog(
         text = {
             Column {
                 Text("将合并以下数据：")
-                Spacer(Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(8.dp))
                 Text("• 账户 ${preview.accountsCount} 个")
                 Text("• 类别 ${preview.categoriesCount} 个")
                 Text("• 交易 ${preview.transactionsCount} 笔")
-                Spacer(Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     text = "说明：同名账户/类别会复用；期初余额仅在本地为 0 时采用备份。交易按内容去重：本地软删+备份未删则恢复；备份已软删则同步软删。",
                     style = MaterialTheme.typography.bodySmall,
@@ -283,20 +280,12 @@ private fun ImportPreviewDialog(
             }
         },
         confirmButton = {
-            TextButton(
-                onClick = onConfirm,
-                enabled = !isImporting
-            ) {
+            TextButton(onClick = onConfirm, enabled = !isImporting) {
                 Text(if (isImporting) "导入中…" else "确认导入")
             }
         },
         dismissButton = {
-            TextButton(
-                onClick = onDismiss,
-                enabled = !isImporting
-            ) {
-                Text("取消")
-            }
+            TextButton(onClick = onDismiss, enabled = !isImporting) { Text("取消") }
         }
     )
 }
@@ -314,21 +303,18 @@ private fun ThemePickerDialog(
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 ThemeOption(
                     label = "跟随系统",
-                    description = "Android 12+ 跟系统壁纸取色",
                     icon = Icons.Filled.AutoAwesome,
                     selected = current == ThemeMode.SYSTEM,
                     onClick = { onSelect(ThemeMode.SYSTEM) }
                 )
                 ThemeOption(
                     label = "浅色",
-                    description = "始终浅色主题",
                     icon = Icons.Filled.LightMode,
                     selected = current == ThemeMode.LIGHT,
                     onClick = { onSelect(ThemeMode.LIGHT) }
                 )
                 ThemeOption(
                     label = "深色",
-                    description = "始终深色主题",
                     icon = Icons.Filled.DarkMode,
                     selected = current == ThemeMode.DARK,
                     onClick = { onSelect(ThemeMode.DARK) }
@@ -344,7 +330,6 @@ private fun ThemePickerDialog(
 @Composable
 private fun ThemeOption(
     label: String,
-    description: String,
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     selected: Boolean,
     onClick: () -> Unit
@@ -355,82 +340,4 @@ private fun ThemeOption(
         label = { Text(label) },
         leadingIcon = { Icon(icon, contentDescription = null) }
     )
-}
-
-// ============================================================
-// 基础组件
-// ============================================================
-
-@Composable
-private fun SectionCard(
-    title: String,
-    content: @Composable () -> Unit
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp)),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-    ) {
-        Column(modifier = Modifier.padding(vertical = 8.dp)) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-            )
-            content()
-        }
-    }
-}
-
-@Composable
-private fun SettingsItem(
-    text: String,
-    subtitle: String? = null,
-    onClick: (() -> Unit)? = null,
-    enabled: Boolean = true
-) {
-    val clickableModifier = if (onClick != null && enabled) {
-        Modifier.clickable(onClick = onClick)
-    } else Modifier
-
-    Row(
-        modifier = clickableModifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = text,
-                style = MaterialTheme.typography.bodyLarge,
-                color = if (enabled) MaterialTheme.colorScheme.onSurface
-                    else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-            )
-            if (subtitle != null) {
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-        if (onClick != null) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
-}
-
-@Preview(showBackground = true, heightDp = 600)
-@Composable
-private fun SettingsScreenPreview() {
-    BieHuaLeTheme {
-        // Preview 无 Hilt
-    }
 }

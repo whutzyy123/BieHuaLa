@@ -17,6 +17,7 @@
 | 文档 | 路径 | 内容 |
 |------|------|------|
 | PRD | [`docs/PRD.md`](./docs/PRD.md) | 做什么、为什么、范围边界 |
+| 前端设计 | [`docs/UI_DESIGN.md`](./docs/UI_DESIGN.md) | 视觉调性、Token、分屏构图（UI 改版必读） |
 | 开发计划 | [`docs/DEV_PLAN.md`](./docs/DEV_PLAN.md) | 5 个 phase、36 个 task、命名规范 |
 | 目录结构 | [`docs/STRUCTURE.md`](./docs/STRUCTURE.md) | 每个目录/文件是干什么的 |
 | 第一性原理审查 | [`docs/REVIEW_REPORT.md`](./docs/REVIEW_REPORT.md) | v0.3.0 全量审查与修复结论 |
@@ -26,16 +27,16 @@
 
 ## 3. 当前状态
 
-✅ **v0.3.1 — 残余缺陷修复完成**
+✅ **v0.4.2 — UX 交互减层 + Mist Teal Ledger**
 
-主路径可用；v0.3.0 审查修复 + v0.3.1 备份 deletedAt 矩阵 / 期初策略 / 连点保存等已落地。分享 APK 见 [`RELEASE_NOTES_v0.3.1.md`](./RELEASE_NOTES_v0.3.1.md)。
+视觉按 [`docs/UI_DESIGN.md`](./docs/UI_DESIGN.md) 落地；业务规则仍以 PRD / v0.3.1 为准。分享说明见 [`RELEASE_NOTES_v0.4.0.md`](./RELEASE_NOTES_v0.4.0.md)（骨架）与 CHANGELOG 0.4.1 / 0.4.2。
 
-**v0.3.1 关键变更**：
-- 备份 merge 按双方 deletedAt 决策（restore / softDelete / skip）
-- 同名账户期初仅本地为 0 时采用备份；记账 `onSave` 防双点
-- Room schema v3：`to_account_id` 索引
+**v0.4.x 关键变更**：
+- 品牌优先主题 + Serif/Sans/Mono；账单 Hero / 记账舞台 / 设置去卡片
+- v0.4.1：字体槽位修正、模式条均分、图表降权、AppSpacing 统一
+- v0.4.2：账单只看 / 查在全部流水；饼图带类别跳转；长按编辑；保存后连记
 
-后续改动前请先对照 [`docs/PRD.md`](./docs/PRD.md)、[`docs/REVIEW_REPORT.md`](./docs/REVIEW_REPORT.md)、[`docs/STRUCTURE.md`](./docs/STRUCTURE.md)、[`CHANGELOG.md`](./CHANGELOG.md)。
+后续 UI 改动以 [`docs/UI_DESIGN.md`](./docs/UI_DESIGN.md) 为准；功能改动对照 PRD / REVIEW / STRUCTURE / CHANGELOG。
 
 ## 4. 关键约束（不可变）
 

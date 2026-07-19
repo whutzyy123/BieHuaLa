@@ -2,75 +2,141 @@ package com.biehuale.app.ui.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
+import com.biehuale.app.R
 
 /**
- * 别花乐 (BieHuaLe) - Typography
+ * Mist Teal Ledger — Typography（docs/UI_DESIGN.md §3.2）
  *
- * v0.1.0：使用系统默认字体 + Monospace 作为金额字体。
- * 关键决策：金额用等宽字体（避免"¥35.50"跳来跳去）。
- *
- * 详见 docs/PRD.md §7.1。
- *
- * 未来增强（v0.2+）：
- *  - 引入等宽字体资源（如 JetBrains Mono / Roboto Mono）
- *  - 微调 LineHeight / LetterSpacing
+ * Serif 标题 · Sans 正文 · Mono 金额（tabular）
  */
 
-// 金额专用：等宽字体（Phase 2 替换为真实字体）
-val MoneyFontFamily: FontFamily = FontFamily.Monospace
+val BrandSerif = FontFamily(
+    Font(R.font.noto_serif_sc_medium, FontWeight.Medium),
+    Font(R.font.noto_serif_sc_medium, FontWeight.SemiBold)
+)
+
+val UiSans = FontFamily(
+    Font(R.font.noto_sans_sc_regular, FontWeight.Normal),
+    Font(R.font.noto_sans_sc_regular, FontWeight.Medium),
+    Font(R.font.noto_sans_sc_regular, FontWeight.SemiBold)
+)
+
+val MoneyFontFamily = FontFamily(
+    Font(R.font.ibm_plex_mono_medium, FontWeight.Medium),
+    Font(R.font.ibm_plex_mono_semibold, FontWeight.SemiBold)
+)
+
+/** 账单 Hero 金额 */
+val MoneyHeroStyle = TextStyle(
+    fontFamily = MoneyFontFamily,
+    fontWeight = FontWeight.SemiBold,
+    fontSize = 44.sp,
+    lineHeight = 52.sp,
+    letterSpacing = (-0.5).sp
+)
+
+/** 流水行金额 */
+val MoneyRowStyle = TextStyle(
+    fontFamily = MoneyFontFamily,
+    fontWeight = FontWeight.Medium,
+    fontSize = 17.sp,
+    lineHeight = 24.sp
+)
+
+/** 页标题 / 月份（Serif） */
+val ScreenTitleStyle = TextStyle(
+    fontFamily = BrandSerif,
+    fontWeight = FontWeight.SemiBold,
+    fontSize = 22.sp,
+    lineHeight = 28.sp
+)
 
 val AppTypography = Typography(
-    // 金额大数字（账单 Tab 顶部）
-    displayLarge = TextStyle(
-        fontFamily = MoneyFontFamily,
-        fontWeight = FontWeight.SemiBold,
-        fontSize = 48.sp,
-        lineHeight = 56.sp,
-        letterSpacing = (-0.25).sp
-    ),
+    displayLarge = MoneyHeroStyle,
     displayMedium = TextStyle(
         fontFamily = MoneyFontFamily,
         fontWeight = FontWeight.SemiBold,
         fontSize = 36.sp,
         lineHeight = 44.sp
     ),
-    // 金额中等（流水列表行）
-    titleLarge = TextStyle(
-        fontFamily = MoneyFontFamily,
-        fontWeight = FontWeight.Medium,
+    displaySmall = TextStyle(
+        fontFamily = BrandSerif,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 28.sp,
+        lineHeight = 36.sp
+    ),
+    headlineLarge = ScreenTitleStyle,
+    headlineMedium = TextStyle(
+        fontFamily = BrandSerif,
+        fontWeight = FontWeight.SemiBold,
         fontSize = 20.sp,
-        lineHeight = 28.sp
+        lineHeight = 26.sp
+    ),
+    headlineSmall = TextStyle(
+        fontFamily = BrandSerif,
+        fontWeight = FontWeight.Medium,
+        fontSize = 18.sp,
+        lineHeight = 24.sp
+    ),
+    titleLarge = TextStyle(
+        fontFamily = UiSans,
+        fontWeight = FontWeight.Medium,
+        fontSize = 18.sp,
+        lineHeight = 26.sp
     ),
     titleMedium = TextStyle(
-        fontFamily = MoneyFontFamily,
+        fontFamily = UiSans,
         fontWeight = FontWeight.Medium,
         fontSize = 16.sp,
         lineHeight = 24.sp
     ),
-    // 普通文字
+    titleSmall = TextStyle(
+        fontFamily = UiSans,
+        fontWeight = FontWeight.Medium,
+        fontSize = 14.sp,
+        lineHeight = 20.sp
+    ),
     bodyLarge = TextStyle(
-        fontFamily = FontFamily.Default,
+        fontFamily = UiSans,
         fontWeight = FontWeight.Normal,
         fontSize = 16.sp,
-        lineHeight = 24.sp,
-        letterSpacing = 0.5.sp
+        lineHeight = 24.sp
     ),
     bodyMedium = TextStyle(
-        fontFamily = FontFamily.Default,
+        fontFamily = UiSans,
         fontWeight = FontWeight.Normal,
-        fontSize = 14.sp,
-        lineHeight = 20.sp,
-        letterSpacing = 0.25.sp
+        fontSize = 15.sp,
+        lineHeight = 22.sp
     ),
-    // 标签 / 按钮
+    bodySmall = TextStyle(
+        fontFamily = UiSans,
+        fontWeight = FontWeight.Normal,
+        fontSize = 13.sp,
+        lineHeight = 18.sp
+    ),
     labelLarge = TextStyle(
-        fontFamily = FontFamily.Default,
+        fontFamily = UiSans,
         fontWeight = FontWeight.Medium,
         fontSize = 14.sp,
         lineHeight = 20.sp,
         letterSpacing = 0.1.sp
+    ),
+    labelMedium = TextStyle(
+        fontFamily = UiSans,
+        fontWeight = FontWeight.Medium,
+        fontSize = 12.sp,
+        lineHeight = 16.sp,
+        letterSpacing = 0.5.sp
+    ),
+    labelSmall = TextStyle(
+        fontFamily = UiSans,
+        fontWeight = FontWeight.Medium,
+        fontSize = 11.sp,
+        lineHeight = 16.sp,
+        letterSpacing = 0.5.sp
     )
 )

@@ -7,6 +7,51 @@
 
 ---
 
+## [0.4.2] - 2026-07-19
+
+**UX 交互减层**：账单只「看」、查历史进全部流水、长按编辑、保存后连记。
+
+### Changed
+
+- 账单首页去掉搜索/筛选；Hero 下「本月流水」弱链；饼图点击跳转全部流水并带 `categoryId`
+- 全部流水：筛选即时生效 +「完成」关 Sheet；已筛选 badge；列表长按编辑/删除
+- 新建记账保存后留在记账 Tab 并清空；编辑态锁模式 + 标题「编辑账单」
+- 账户下拉整块可点；无账户跳转管理；时间字段接 Date/TimePicker；类别行点击编辑；详情/回收站 CTA 权重
+- `versionName` → `0.4.2`（versionCode 6）
+
+---
+
+## [0.4.1] - 2026-07-19
+
+**UI 视觉平衡调优**（对照 [`docs/UI_DESIGN.md`](./docs/UI_DESIGN.md)）。
+
+### Changed
+
+- 解绑 `titleMedium` 金额 Mono 污染；金额仅走 `MoneyRowStyle` / `AmountText`
+- 记账 ModeSelector 三等分 + 指示条居中；AmountStage / 键盘比例收敛
+- 账单 Hero 呼吸与月份居中；饼图/折线降权；区块标题改为 caption 级
+- 统一 `AppSpacing` 与列表行高；底栏顶部分割线；管理页透明底 + Serif 顶栏
+- `versionName` → `0.4.1`（versionCode 5）
+
+---
+
+## [0.4.0] - 2026-07-19
+
+**Mist Teal Ledger UI 全量重构**（[`docs/UI_DESIGN.md`](./docs/UI_DESIGN.md) / [RELEASE_NOTES_v0.4.0.md](./RELEASE_NOTES_v0.4.0.md)）。
+
+### Changed
+
+- **主题**：品牌色板优先；Dynamic Color 默认关，设置可开「跟随壁纸取色」
+- **字体**：Noto Serif SC / Noto Sans SC / IBM Plex Mono；金额 tabular
+- **氛围底**：浅色雾青渐变 / 深色墨绿炭；柔化 `primaryContainer`
+- **账单**：首屏 Hero「本月已花」；图表与最近流水下移；流水行去 Card
+- **记账**：模式指示条 + 金额舞台 + 类别选中描边 + 键盘降噪
+- **设置**：分组列表替代 SectionCard；关于区品牌 Serif
+- **动效**：金额入场、模式色切换、软删收起
+- `versionName` → `0.4.0`（versionCode 4）
+
+---
+
 ## [0.3.1] - 2026-07-19
 
 **残余缺陷修复**（全量复盘后）。详见 [RELEASE_NOTES_v0.3.1.md](./RELEASE_NOTES_v0.3.1.md)。

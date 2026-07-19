@@ -1,15 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!--
-      Material 3 Color Scheme 由 Compose 在运行时从 dynamicLight/dynamicDark 取
-      这里只定义 launcher icon background 和 splash screen 等原生资源需要的颜色
-
-      Brand Fallback：青绿色（暗合"乐"字，健康积极）
-      详见 docs/PRD.md §7.1
+      Brand seed 与 Compose Brand40 对齐（#006C5C）
+      详见 docs/UI_DESIGN.md §3.1
     -->
-    <color name="ic_launcher_background">#26A69A</color>
-    <color name="brand_seed">#26A69A</color>
-
-    <!-- Splash screen background -->
-    <color name="splash_background">#26A69A</color>
+    <color name="ic_launcher_background">#006C5C</color>
+    <color name="brand_seed">#006C5C</color>
+    <color name="splash_background">#006C5C</color>
 </resources>

@@ -1,7 +1,11 @@
 package com.biehuale.app.ui.common
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -9,7 +13,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Backspace
@@ -18,19 +21,19 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
+import com.biehuale.app.ui.theme.AppRadius
+import com.biehuale.app.ui.theme.AppSpacing
 
 /**
- * 自定义数字键盘（无状态）
- *
- * 详见 docs/DEV_PLAN.md §4 Task 1.8
- *
- * - testTag: keypad_<digit> / keypad_dot / keypad_backspace
- * - 长按 ⌫ → onClear
+ * 自定义数字键盘 — 轻表面、按压缩微反馈；键高 48、边距由外层统一。
  */
 @Composable
 fun MoneyKeypad(
@@ -46,15 +49,11 @@ fun MoneyKeypad(
         listOf(".", "0", "⌫")
     )
 
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 4.dp)
-    ) {
+    Column(modifier = modifier.fillMaxWidth()) {
         keys.forEach { row ->
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs)
             ) {
                 row.forEach { key ->
                     KeypadButton(
@@ -71,7 +70,7 @@ fun MoneyKeypad(
                     )
                 }
             }
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(AppSpacing.xs))
         }
     }
 }
@@ -85,11 +84,14 @@ private fun KeypadButton(
     modifier: Modifier = Modifier
 ) {
     val isBackspace = key == "⌫"
-    val bg = if (isBackspace) {
-        MaterialTheme.colorScheme.surfaceVariant
-    } else {
-        MaterialTheme.colorScheme.surface
-    }
+    val interaction = remember { MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (pressed) 0.96f else 1f,
+        animationSpec = tween(80),
+        label = "keyScale"
+    )
+    val bg = MaterialTheme.colorScheme.surfaceContainerLow
     val fg = MaterialTheme.colorScheme.onSurface
     val tag = when (key) {
         "⌫" -> "keypad_backspace"
@@ -99,10 +101,13 @@ private fun KeypadButton(
 
     Box(
         modifier = modifier
-            .height(56.dp)
-            .clip(RoundedCornerShape(8.dp))
+            .height(48.dp)
+            .scale(scale)
+            .clip(RoundedCornerShape(AppRadius.sm))
             .testTag(tag)
             .combinedClickable(
+                interactionSource = interaction,
+                indication = null,
                 onClick = onClick,
                 onLongClick = onLongClick
             ),
@@ -110,8 +115,14 @@ private fun KeypadButton(
     ) {
         Surface(
             modifier = Modifier.matchParentSize(),
-            color = bg,
-            shape = RoundedCornerShape(8.dp)
+            color = if (isBackspace) {
+                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
+            } else {
+                bg
+            },
+            shape = RoundedCornerShape(AppRadius.sm),
+            tonalElevation = 0.dp,
+            shadowElevation = 0.dp
         ) {}
         if (isBackspace) {
             Icon(
@@ -122,7 +133,7 @@ private fun KeypadButton(
         } else {
             Text(
                 text = key,
-                style = MaterialTheme.typography.headlineSmall,
+                style = MaterialTheme.typography.titleLarge,
                 color = fg
             )
         }

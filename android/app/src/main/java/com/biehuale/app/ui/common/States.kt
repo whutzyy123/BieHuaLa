@@ -20,23 +20,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.biehuale.app.ui.theme.AppSpacing
 
-/**
- * 通用空状态组件。
- *
- * 错误状态：各 Screen 用 Snackbar 表达，不集中抽组件。
- * 详见 docs/DEV_PLAN.md §7 Task 4.7
- */
-
-/**
- * 空状态
- *
- * @param icon 默认 Inbox 图标
- * @param title 主标题（如"还没有记账"）
- * @param subtitle 副标题（如"切到「记账」Tab 记一笔吧"）
- * @param actionText 行动按钮文字（可空）
- * @param onAction 行动按钮回调
- */
 @Composable
 fun EmptyState(
     title: String,
@@ -53,7 +38,7 @@ fun EmptyState(
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
-            modifier = Modifier.padding(24.dp)
+            modifier = Modifier.padding(AppSpacing.lg)
         ) {
             Icon(
                 imageVector = icon,
@@ -61,15 +46,15 @@ fun EmptyState(
                 modifier = Modifier.size(64.dp),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            Spacer(modifier.height(12.dp))
+            Spacer(modifier.height(AppSpacing.sm + AppSpacing.xs))
             Text(
                 text = title,
-                style = MaterialTheme.typography.titleMedium,
+                style = MaterialTheme.typography.titleLarge,
                 color = MaterialTheme.colorScheme.onSurface,
                 textAlign = TextAlign.Center
             )
             if (subtitle != null) {
-                Spacer(modifier.height(4.dp))
+                Spacer(modifier.height(AppSpacing.xs))
                 Text(
                     text = subtitle,
                     style = MaterialTheme.typography.bodyMedium,
@@ -78,7 +63,7 @@ fun EmptyState(
                 )
             }
             if (actionText != null && onAction != null) {
-                Spacer(modifier.height(16.dp))
+                Spacer(modifier.height(AppSpacing.md))
                 TextButton(onClick = onAction) {
                     Text(actionText)
                 }

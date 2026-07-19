@@ -1,87 +1,63 @@
 package com.biehuale.app.ui.bill
 
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.background
-import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.FilterList
-import androidx.compose.material.icons.filled.FilterListOff
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.AssistChipDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.biehuale.app.data.db.entity.AccountEntity
-import com.biehuale.app.data.db.entity.CategoryEntity
 import com.biehuale.app.data.db.entity.TransactionEntity
-import com.biehuale.app.domain.model.TransactionType
 import com.biehuale.app.ui.bill.components.CategoryPieChart
 import com.biehuale.app.ui.bill.components.DailyLineChart
-import com.biehuale.app.ui.bill.components.FilterBottomSheet
-import com.biehuale.app.ui.bill.components.SearchBar
 import com.biehuale.app.ui.bill.components.SummaryCard
 import com.biehuale.app.ui.common.EmptyState
-import com.biehuale.app.ui.theme.AppSemanticColors
-import com.biehuale.app.ui.theme.BieHuaLeTheme
-import com.biehuale.app.ui.theme.MoneyFontFamily
-import com.biehuale.app.util.DateExt.toDateString
-import com.biehuale.app.util.Money.toDisplayString
-import kotlinx.coroutines.launch
-import java.util.Calendar
+import com.biehuale.app.ui.common.TransactionActionSheet
+import com.biehuale.app.ui.common.TransactionRow
+import com.biehuale.app.ui.theme.AppSpacing
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BillScreen(
     onItemClick: (Long) -> Unit = {},
+    onEdit: (Long) -> Unit = {},
     onGoToRecord: () -> Unit = {},
     onViewAll: () -> Unit = {},
+    onCategoryFlow: (Long) -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: BillViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val filterSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    val coroutineScope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
-    var showFilterSheet by remember { mutableStateOf(false) }
+    var actionForTx by remember { mutableStateOf<TransactionEntity?>(null) }
     var pendingDelete by remember { mutableStateOf<TransactionEntity?>(null) }
 
     LaunchedEffect(Unit) {
@@ -92,163 +68,176 @@ fun BillScreen(
         }
     }
 
+    val isTrulyEmpty = uiState.visibleTransactions.isEmpty() &&
+        !uiState.filter.isFiltering &&
+        uiState.filter.keyword.isNullOrBlank() &&
+        uiState.summary.expenseCents == 0L &&
+        uiState.summary.incomeCents == 0L
+
     Scaffold(
         modifier = modifier,
+        containerColor = Color.Transparent,
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .background(MaterialTheme.colorScheme.background)
-        ) {
-            TopToolbar(
-                isSearchOpen = uiState.filter.isSearchOpen,
-                keyword = uiState.filter.keyword.orEmpty(),
-                hasFilter = uiState.filter.isFiltering,
-                onOpenSearch = viewModel::onOpenSearch,
-                onCloseSearch = viewModel::onCloseSearch,
-                onKeywordChange = viewModel::onKeywordChange,
-                onFilterClick = { coroutineScope.launch { showFilterSheet = true } },
-                onViewAll = onViewAll
-            )
-
-            if (uiState.isLoading) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center,
-                    content = { Text(text = "\u52a0\u8f7d\u4e2d\u2026") }
-                )
-            } else if (
-                uiState.visibleTransactions.isEmpty() &&
-                !uiState.filter.isFiltering &&
-                uiState.filter.keyword.isNullOrBlank() &&
-                uiState.summary.expenseCents == 0L &&
-                uiState.summary.incomeCents == 0L
+        if (uiState.isLoading) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding),
+                contentAlignment = Alignment.Center
             ) {
-                Column(modifier = Modifier.fillMaxSize()) {
+                Text(
+                    text = "加载中…",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        } else if (isTrulyEmpty) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+            ) {
+                SummaryCardBlock(uiState, viewModel)
+                EmptyState(
+                    title = "还没有记账",
+                    subtitle = "点下方按钮开始第一笔",
+                    actionText = "去记账",
+                    onAction = onGoToRecord,
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding),
+                contentPadding = PaddingValues(bottom = AppSpacing.xl)
+            ) {
+                item(key = "hero") {
                     SummaryCardBlock(uiState, viewModel)
-                    EmptyState(
-                        title = "\u8fd8\u6ca1\u6709\u8bb0\u8d26",
-                        subtitle = "\u70b9\u4e0b\u65b9\u6309\u94ae\u5f00\u59cb\u7b2c\u4e00\u7b14",
-                        actionText = "\u53bb\u8bb0\u8d26",
-                        onAction = onGoToRecord,
-                        modifier = Modifier.fillMaxSize()
+                }
+
+                item(key = "month_flow_link") {
+                    TextButton(
+                        onClick = onViewAll,
+                        modifier = Modifier.padding(horizontal = AppSpacing.sm)
+                    ) {
+                        Text(
+                            text = "本月流水",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+
+                item(key = "after_hero") {
+                    Box(modifier = Modifier.height(AppSpacing.sm))
+                }
+
+                if (uiState.pieData.isNotEmpty()) {
+                    item(key = "pie") {
+                        CategoryPieChart(
+                            data = uiState.pieData,
+                            categories = uiState.categories,
+                            selectedCategoryId = null,
+                            onCategoryClick = onCategoryFlow
+                        )
+                    }
+                }
+
+                if (uiState.lineData.isNotEmpty()) {
+                    item(key = "line") {
+                        DailyLineChart(
+                            data = uiState.lineData,
+                            granularity = uiState.filter.trendGranularity,
+                            onGranularityChange = viewModel::onTrendGranularityChange
+                        )
+                    }
+                }
+
+                item(key = "recent_header") {
+                    Text(
+                        text = "最近",
+                        style = MaterialTheme.typography.labelLarge,
+                        letterSpacing = 0.8.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(
+                            horizontal = AppSpacing.md,
+                            vertical = AppSpacing.sm
+                        )
                     )
                 }
-            } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    item(key = "summary") { SummaryCardBlock(uiState, viewModel) }
-                    item(key = "pie") {
-                        if (uiState.pieData.isNotEmpty()) {
-                            CategoryPieChart(
-                                data = uiState.pieData,
-                                categories = uiState.categories,
-                                selectedCategoryId = uiState.filter.categoryIds.singleOrNull(),
-                                onCategoryToggle = viewModel::onCategoryToggle
+
+                val recent = uiState.visibleTransactions.take(5)
+                if (recent.isEmpty()) {
+                    item(key = "empty_filtered") {
+                        Text(
+                            text = "当前条件下没有记录",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(
+                                horizontal = AppSpacing.md,
+                                vertical = AppSpacing.lg
+                            )
+                        )
+                    }
+                } else {
+                    items(recent, key = { it.id }) { transaction ->
+                        AnimatedVisibility(
+                            visible = true,
+                            enter = fadeIn(tween(150)) + expandVertically(tween(180)),
+                            exit = fadeOut(tween(150)) + shrinkVertically(tween(180))
+                        ) {
+                            TransactionRow(
+                                transaction = transaction,
+                                category = uiState.categoryOf(transaction.categoryId),
+                                account = uiState.accountOf(transaction.accountId),
+                                toAccount = transaction.toAccountId?.let { uiState.accountOf(it) },
+                                onClick = { onItemClick(transaction.id) },
+                                onLongClick = { actionForTx = transaction },
+                                rowModifier = Modifier.padding(horizontal = AppSpacing.md)
                             )
                         }
                     }
-                    item(key = "line") {
-                        if (uiState.lineData.isNotEmpty()) {
-                            DailyLineChart(
-                                data = uiState.lineData,
-                                granularity = uiState.filter.trendGranularity,
-                                onGranularityChange = viewModel::onTrendGranularityChange
-                            )
-                        }
-                    }
-                    if (uiState.filter.isFiltering) {
-                        item(key = "filter_chip") {
-                            val count = uiState.filter.accountIds.size +
-                                uiState.filter.categoryIds.size +
-                                uiState.filter.types.size
-                            AssistChip(
-                                onClick = viewModel::onClearFilters,
-                                label = { Text("\u5df2\u5e94\u7528 $count \u9879\u7b5b\u9009") },
-                                colors = AssistChipDefaults.assistChipColors(
-                                    containerColor = MaterialTheme.colorScheme.secondaryContainer
-                                )
-                            )
-                        }
-                    }
-                    if (uiState.visibleTransactions.isEmpty()) {
-                        item(key = "empty_filtered") {
-                            Text(
-                                text = "\u5f53\u524d\u6761\u4ef6\u4e0b\u6ca1\u6709\u8bb0\u5f55",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(vertical = 24.dp)
-                            )
-                        }
-                    } else {
-                        val groups = uiState.visibleTransactions
-                            .groupBy { dayKey(it.occurredAt) }
-                            .toList()
-                            .sortedByDescending { it.first }
-                        groups.forEach { (day, list) ->
-                            item(key = "header_$day") {
-                                Text(
-                                    text = day.toDateString(),
-                                    style = MaterialTheme.typography.titleSmall,
-                                    color = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
-                                )
-                            }
-                            items(list, key = { it.id }) { transaction ->
-                                TransactionRow(
-                                    transaction = transaction,
-                                    category = uiState.categoryOf(transaction.categoryId),
-                                    account = uiState.accountOf(transaction.accountId),
-                                    toAccount = transaction.toAccountId?.let { uiState.accountOf(it) },
-                                    onClick = { onItemClick(transaction.id) },
-                                    onLongClick = { pendingDelete = transaction }
-                                )
-                            }
-                        }
+                }
+
+                item(key = "view_all") {
+                    TextButton(
+                        onClick = onViewAll,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = AppSpacing.sm)
+                    ) {
+                        Text("查看全部")
                     }
                 }
             }
         }
     }
 
+    actionForTx?.let { tx ->
+        TransactionActionSheet(
+            onEdit = { onEdit(tx.id) },
+            onDelete = { pendingDelete = tx },
+            onDismiss = { actionForTx = null }
+        )
+    }
+
     pendingDelete?.let { tx ->
         AlertDialog(
             onDismissRequest = { pendingDelete = null },
-            title = { Text("\u5220\u9664\u8fd9\u7b14\u8d26\uff1f") },
-            text = { Text("\u5df2\u79fb\u51fa\u5217\u8868\uff08\u8f6f\u5220\u9664\uff09\u3002\u53ef\u5728\u8bbe\u7f6e \u2192 \u56de\u6536\u7ad9\u6062\u590d\u3002") },
+            title = { Text("删除这笔账？") },
+            text = { Text("已移出列表（软删除）。可在设置 → 回收站恢复。") },
             confirmButton = {
                 TextButton(onClick = {
                     viewModel.softDelete(tx.id)
                     pendingDelete = null
-                }) { Text("\u5220\u9664") }
+                }) { Text("删除", color = MaterialTheme.colorScheme.error) }
             },
             dismissButton = {
-                TextButton(onClick = { pendingDelete = null }) { Text("\u53d6\u6d88") }
+                TextButton(onClick = { pendingDelete = null }) { Text("取消") }
             }
-        )
-    }
-
-    if (showFilterSheet) {
-        FilterBottomSheet(
-            sheetState = filterSheetState,
-            onDismiss = {
-                coroutineScope.launch {
-                    filterSheetState.hide()
-                    showFilterSheet = false
-                }
-            },
-            selectedTypes = uiState.filter.types,
-            selectedAccountIds = uiState.filter.accountIds,
-            selectedCategoryIds = uiState.filter.categoryIds,
-            accounts = uiState.accounts,
-            categories = uiState.categories.filter { !it.isArchived },
-            onApply = viewModel::onApplyFilters,
-            onClearApplied = viewModel::onClearFilters
         )
     }
 }
@@ -266,142 +255,4 @@ private fun SummaryCardBlock(uiState: BillUiState, viewModel: BillViewModel) {
         customRangeStart = uiState.filter.customRangeStart,
         customRangeEnd = uiState.filter.customRangeEnd
     )
-}
-
-@Composable
-private fun TopToolbar(
-    isSearchOpen: Boolean,
-    keyword: String,
-    hasFilter: Boolean,
-    onOpenSearch: () -> Unit,
-    onCloseSearch: () -> Unit,
-    onKeywordChange: (String) -> Unit,
-    onFilterClick: () -> Unit,
-    onViewAll: () -> Unit
-) {
-    if (isSearchOpen) {
-        SearchBar(
-            keyword = keyword,
-            onKeywordChange = onKeywordChange,
-            onClose = onCloseSearch
-        )
-    } else {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 4.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            TextButton(onClick = onViewAll) {
-                Text("\u67e5\u770b\u5168\u90e8")
-            }
-            Spacer(modifier = Modifier.weight(1f))
-            IconButton(onClick = onOpenSearch) {
-                Icon(Icons.Filled.Search, contentDescription = "\u641c\u7d22")
-            }
-            IconButton(onClick = onFilterClick) {
-                Icon(
-                    imageVector = if (hasFilter) Icons.Filled.FilterListOff else Icons.Filled.FilterList,
-                    contentDescription = "\u7b5b\u9009",
-                    tint = if (hasFilter) MaterialTheme.colorScheme.primary
-                    else MaterialTheme.colorScheme.onSurface
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun TransactionRow(
-    transaction: TransactionEntity,
-    category: CategoryEntity?,
-    account: AccountEntity?,
-    toAccount: AccountEntity?,
-    onClick: () -> Unit,
-    onLongClick: () -> Unit
-) {
-    val amountColor = when (transaction.type) {
-        TransactionType.INCOME -> AppSemanticColors.income
-        TransactionType.EXPENSE -> AppSemanticColors.expense
-        TransactionType.TRANSFER -> AppSemanticColors.transfer
-    }
-    val sign = when (transaction.type) {
-        TransactionType.INCOME -> "+"
-        TransactionType.EXPENSE -> "-"
-        TransactionType.TRANSFER -> ""
-    }
-    val title = when (transaction.type) {
-        TransactionType.TRANSFER ->
-            "${account?.name ?: "?"} \u2192 ${toAccount?.name ?: "?"}"
-        else -> {
-            val name = category?.name ?: "\u672a\u5206\u7c7b"
-            if (category?.isArchived == true) "$name\uff08\u5df2\u5f52\u6863\uff09" else name
-        }
-    }
-    val accountLabel = account?.let {
-        if (it.isArchived) "${it.name}\uff08\u5df2\u5f52\u6863\uff09" else it.name
-    } ?: "\u672a\u6307\u5b9a\u8d26\u6237"
-    val subtitle = buildString {
-        append(accountLabel)
-        if (!transaction.description.isNullOrBlank()) {
-            append(" \u00b7 ")
-            append(transaction.description)
-        }
-    }
-
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(8.dp))
-            .combinedClickable(onClick = onClick, onLongClick = onLongClick),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium
-                )
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = "$subtitle \u00b7 ${transaction.occurredAt.toDateString()}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            Text(
-                text = "$sign${transaction.amount.toDisplayString()}",
-                style = MaterialTheme.typography.titleMedium,
-                color = amountColor,
-                fontFamily = MoneyFontFamily,
-                fontWeight = FontWeight.SemiBold
-            )
-        }
-    }
-}
-
-private fun dayKey(timestamp: Long): Long {
-    val cal = Calendar.getInstance().apply {
-        timeInMillis = timestamp
-        set(Calendar.HOUR_OF_DAY, 0)
-        set(Calendar.MINUTE, 0)
-        set(Calendar.SECOND, 0)
-        set(Calendar.MILLISECOND, 0)
-    }
-    return cal.timeInMillis
-}
-
-@Preview(showBackground = true)
-@Composable
-private fun BillScreenPreview() {
-    BieHuaLeTheme {
-        Text("BillScreen Preview")
-    }
 }

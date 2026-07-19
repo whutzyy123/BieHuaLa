@@ -28,10 +28,6 @@ import androidx.compose.material3.SheetState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -41,9 +37,7 @@ import com.biehuale.app.data.db.entity.CategoryEntity
 import com.biehuale.app.domain.model.TransactionType
 
 /**
- * 筛选 BottomSheet（本地 draft，点「应用」再写回）
- *
- * 详见 docs/DEV_PLAN.md §6 Task 3.6
+ * 筛选 BottomSheet：勾选即时写回；底部「完成」关 Sheet、「清除」清空。
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -58,10 +52,6 @@ fun FilterBottomSheet(
     onApply: (types: Set<TransactionType>, accountIds: Set<Long>, categoryIds: Set<Long>) -> Unit,
     onClearApplied: () -> Unit
 ) {
-    var draftTypes by remember { mutableStateOf(selectedTypes) }
-    var draftAccounts by remember { mutableStateOf(selectedAccountIds) }
-    var draftCategories by remember { mutableStateOf(selectedCategoryIds) }
-
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState
@@ -80,12 +70,7 @@ fun FilterBottomSheet(
                     style = MaterialTheme.typography.titleLarge
                 )
                 Spacer(modifier = Modifier.weight(1f))
-                TextButton(onClick = {
-                    draftTypes = emptySet()
-                    draftAccounts = emptySet()
-                    draftCategories = emptySet()
-                    onClearApplied()
-                }) {
+                TextButton(onClick = onClearApplied) {
                     Text("清除")
                 }
             }
@@ -97,20 +82,38 @@ fun FilterBottomSheet(
                     TypeChip(
                         label = "支出",
                         icon = Icons.Filled.ArrowUpward,
-                        selected = TransactionType.EXPENSE in draftTypes,
-                        onClick = { draftTypes = draftTypes.toggle(TransactionType.EXPENSE) }
+                        selected = TransactionType.EXPENSE in selectedTypes,
+                        onClick = {
+                            onApply(
+                                selectedTypes.toggle(TransactionType.EXPENSE),
+                                selectedAccountIds,
+                                selectedCategoryIds
+                            )
+                        }
                     )
                     TypeChip(
                         label = "收入",
                         icon = Icons.Filled.ArrowDownward,
-                        selected = TransactionType.INCOME in draftTypes,
-                        onClick = { draftTypes = draftTypes.toggle(TransactionType.INCOME) }
+                        selected = TransactionType.INCOME in selectedTypes,
+                        onClick = {
+                            onApply(
+                                selectedTypes.toggle(TransactionType.INCOME),
+                                selectedAccountIds,
+                                selectedCategoryIds
+                            )
+                        }
                     )
                     TypeChip(
                         label = "转账",
                         icon = Icons.Filled.SwapHoriz,
-                        selected = TransactionType.TRANSFER in draftTypes,
-                        onClick = { draftTypes = draftTypes.toggle(TransactionType.TRANSFER) }
+                        selected = TransactionType.TRANSFER in selectedTypes,
+                        onClick = {
+                            onApply(
+                                selectedTypes.toggle(TransactionType.TRANSFER),
+                                selectedAccountIds,
+                                selectedCategoryIds
+                            )
+                        }
                     )
                 }
             }
@@ -134,8 +137,14 @@ fun FilterBottomSheet(
                             CheckboxRow(
                                 label = account.name,
                                 icon = Icons.Filled.AccountBalanceWallet,
-                                checked = account.id in draftAccounts,
-                                onToggle = { draftAccounts = draftAccounts.toggle(account.id) }
+                                checked = account.id in selectedAccountIds,
+                                onToggle = {
+                                    onApply(
+                                        selectedTypes,
+                                        selectedAccountIds.toggle(account.id),
+                                        selectedCategoryIds
+                                    )
+                                }
                             )
                         }
                     }
@@ -161,8 +170,14 @@ fun FilterBottomSheet(
                             CheckboxRow(
                                 label = category.name,
                                 icon = Icons.Filled.Category,
-                                checked = category.id in draftCategories,
-                                onToggle = { draftCategories = draftCategories.toggle(category.id) }
+                                checked = category.id in selectedCategoryIds,
+                                onToggle = {
+                                    onApply(
+                                        selectedTypes,
+                                        selectedAccountIds,
+                                        selectedCategoryIds.toggle(category.id)
+                                    )
+                                }
                             )
                         }
                     }
@@ -172,13 +187,10 @@ fun FilterBottomSheet(
             Spacer(modifier = Modifier.height(16.dp))
 
             Button(
-                onClick = {
-                    onApply(draftTypes, draftAccounts, draftCategories)
-                    onDismiss()
-                },
+                onClick = onDismiss,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("应用")
+                Text("完成")
             }
             Spacer(modifier = Modifier.height(8.dp))
         }

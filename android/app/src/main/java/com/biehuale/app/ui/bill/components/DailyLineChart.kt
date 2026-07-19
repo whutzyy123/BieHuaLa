@@ -8,14 +8,12 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.FilterChip
+import androidx.compose.foundation.clickable
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
@@ -29,15 +27,14 @@ import androidx.compose.ui.unit.sp
 import com.biehuale.app.data.db.dao.DailyTotal
 import com.biehuale.app.ui.bill.TrendGranularity
 import com.biehuale.app.ui.theme.AppSemanticColors
+import com.biehuale.app.ui.theme.AppSpacing
 import com.biehuale.app.util.Money.toMoneyString
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
 /**
- * 自绘支出趋势折线图（按日 / 周 / 月）
- *
- * 详见 docs/DEV_PLAN.md §6 Task 3.3
+ * 自绘支出趋势折线图（按日 / 周 / 月）— 无 Card，粒度用文字 Segment。
  */
 @Composable
 fun DailyLineChart(
@@ -51,32 +48,30 @@ fun DailyLineChart(
     val maxValue = data.maxOf { it.totalCents }.coerceAtLeast(100L)
     val displayMax = (maxValue * 1.2f).toLong()
     val lineColor = AppSemanticColors.expense
-    val title = when (granularity) {
-        TrendGranularity.DAY -> "\u6bcf\u65e5\u652f\u51fa\u8d8b\u52bf"
-        TrendGranularity.WEEK -> "\u6bcf\u5468\u652f\u51fa\u8d8b\u52bf"
-        TrendGranularity.MONTH -> "\u6bcf\u6708\u652f\u51fa\u8d8b\u52bf"
-    }
 
-    Surface(
+    Column(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp)),
-        color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 1.dp
+            .padding(horizontal = AppSpacing.md, vertical = AppSpacing.sm)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             Text(
-                text = title,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold
+                text = "怎么花的",
+                style = MaterialTheme.typography.labelLarge,
+                letterSpacing = 0.8.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.weight(1f)
             )
-            Spacer(modifier = Modifier.height(8.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                GranularityChip("\u6309\u65e5", TrendGranularity.DAY, granularity, onGranularityChange)
-                GranularityChip("\u6309\u5468", TrendGranularity.WEEK, granularity, onGranularityChange)
-                GranularityChip("\u6309\u6708", TrendGranularity.MONTH, granularity, onGranularityChange)
+            Row(horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm + AppSpacing.xs)) {
+                GranularitySegment("日", TrendGranularity.DAY, granularity, onGranularityChange)
+                GranularitySegment("周", TrendGranularity.WEEK, granularity, onGranularityChange)
+                GranularitySegment("月", TrendGranularity.MONTH, granularity, onGranularityChange)
             }
-            Spacer(modifier = Modifier.height(12.dp))
+        }
+        Spacer(modifier = Modifier.height(AppSpacing.sm))
 
             val density = LocalDensity.current
             val labelTextSizePx = with(density) { 10.sp.toPx() }
@@ -84,7 +79,7 @@ fun DailyLineChart(
             Canvas(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(160.dp)
+                    .height(120.dp)
             ) {
                 val padding = 16.dp.toPx()
                 val chartWidth = size.width - padding * 2
@@ -117,7 +112,7 @@ fun DailyLineChart(
                     drawPath(
                         path = path,
                         color = lineColor,
-                        style = Stroke(width = 2.5.dp.toPx())
+                        style = Stroke(width = 2.dp.toPx())
                     )
                 }
 
@@ -177,21 +172,27 @@ fun DailyLineChart(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-        }
     }
 }
 
 @Composable
-private fun GranularityChip(
+private fun GranularitySegment(
     label: String,
     value: TrendGranularity,
     selected: TrendGranularity,
     onSelect: (TrendGranularity) -> Unit
 ) {
-    FilterChip(
-        selected = selected == value,
-        onClick = { onSelect(value) },
-        label = { Text(label) }
+    val isSelected = selected == value
+    Text(
+        text = label,
+        style = MaterialTheme.typography.labelLarge,
+        fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+        color = if (isSelected) {
+            MaterialTheme.colorScheme.primary
+        } else {
+            MaterialTheme.colorScheme.onSurfaceVariant
+        },
+        modifier = Modifier.clickable { onSelect(value) }
     )
 }
 

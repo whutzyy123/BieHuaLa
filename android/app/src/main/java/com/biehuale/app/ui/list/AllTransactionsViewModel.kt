@@ -128,6 +128,13 @@ class AllTransactionsViewModel @Inject constructor(
         }
     }
 
+    /** 从账单饼图等入口带入的初始类别筛选 */
+    fun applyInitialCategory(categoryId: Long) {
+        _filter.update {
+            it.copy(categoryIds = setOf(categoryId))
+        }
+    }
+
     fun softDelete(id: Long) {
         viewModelScope.launch {
             try {

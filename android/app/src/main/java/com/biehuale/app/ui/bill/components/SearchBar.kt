@@ -17,12 +17,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.unit.dp
+import com.biehuale.app.ui.theme.AppSpacing
 
 /**
  * 搜索栏（账单 Tab 顶部展开态）
- *
- * 详见 docs/DEV_PLAN.md §6 Task 3.5
  */
 @Composable
 fun SearchBar(
@@ -46,7 +44,7 @@ fun SearchBar(
         onValueChange = onKeywordChange,
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 4.dp)
+            .padding(horizontal = AppSpacing.md, vertical = AppSpacing.xs)
             .focusRequester(focusRequester),
         placeholder = { Text("搜索说明…") },
         leadingIcon = {

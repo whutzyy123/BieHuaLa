@@ -112,14 +112,20 @@ fun AccountManageScreen(
 
     Scaffold(
         modifier = modifier,
+        containerColor = Color.Transparent,
         topBar = {
             TopAppBar(
-                title = { Text("账户管理") },
+                title = {
+                    Text("账户管理", style = com.biehuale.app.ui.theme.ScreenTitleStyle)
+                },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
                     }
-                }
+                },
+                colors = androidx.compose.material3.TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.Transparent
+                )
             )
         },
         floatingActionButton = {
@@ -135,7 +141,6 @@ fun AccountManageScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .background(MaterialTheme.colorScheme.background)
         ) {
             when {
                 uiState.isLoading -> {
@@ -147,15 +152,18 @@ fun AccountManageScreen(
                     }
                 }
                 uiState.accounts.isEmpty() -> {
-                    EmptyState(
-                        onCreate = { showEditDialog = EditTarget.New }
+                    com.biehuale.app.ui.common.EmptyState(
+                        title = "还没有账户",
+                        subtitle = "点下方按钮新建你的第一个账户",
+                        icon = Icons.Filled.AccountBalanceWallet,
+                        actionText = "新建账户",
+                        onAction = { showEditDialog = EditTarget.New }
                     )
                 }
                 else -> {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                        contentPadding = PaddingValues(com.biehuale.app.ui.theme.AppSpacing.md)
                     ) {
                         items(uiState.accounts, key = { it.account.id }) { item ->
                             AccountListItem(
@@ -198,37 +206,24 @@ private fun AccountListItem(
     var menuExpanded by remember { mutableStateOf(false) }
     var showArchiveConfirm by remember { mutableStateOf(false) }
 
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .combinedClickable(
-                onClick = onClick,
-                onLongClick = { menuExpanded = true }
-            ),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-    ) {
+    Column(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
+                .combinedClickable(
+                    onClick = onClick,
+                    onLongClick = { menuExpanded = true }
+                )
+                .padding(horizontal = 16.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // 图标
             Box(
                 modifier = Modifier
-                    .size(40.dp)
+                    .size(10.dp)
                     .clip(CircleShape)
-                    .background(parseColorOrDefault(item.account.colorHex, MaterialTheme.colorScheme.primaryContainer)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.AccountBalanceWallet,
-                    contentDescription = null,
-                    tint = Color.White
-                )
-            }
+                    .background(parseColorOrDefault(item.account.colorHex, MaterialTheme.colorScheme.primary))
+                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape)
+            )
             Spacer(modifier = Modifier.size(12.dp))
 
             Column(modifier = Modifier.weight(1f)) {
@@ -283,6 +278,10 @@ private fun AccountListItem(
                 }
             }
         }
+        HorizontalDivider(
+            thickness = 0.5.dp,
+            color = MaterialTheme.colorScheme.outlineVariant
+        )
     }
 
     if (showArchiveConfirm) {
@@ -290,7 +289,7 @@ private fun AccountListItem(
             onDismissRequest = { showArchiveConfirm = false },
             title = { Text("归档账户？") },
             text = {
-                Text("归档后「${item.account.name}」将从列表隐藏，但历史账仍会显示。\n\n可在 Room 数据库中重新激活（Phase 2 不提供 UI 恢复）。")
+                Text("归档后「${item.account.name}」将从列表隐藏，但历史账仍会显示该账户名称。")
             },
             confirmButton = {
                 TextButton(onClick = {
@@ -379,34 +378,6 @@ private fun AccountEditDialog(
             }
         }
     )
-}
-
-@Composable
-private fun EmptyState(onCreate: () -> Unit) {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Icon(
-                imageVector = Icons.Filled.AccountBalanceWallet,
-                contentDescription = null,
-                modifier = Modifier.size(64.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                "还没有账户",
-                style = MaterialTheme.typography.titleMedium
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                "点下方按钮新建你的第一个账户",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
 }
 
 @Preview(showBackground = true)

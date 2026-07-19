@@ -12,9 +12,7 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /**
- * 外观设置 ViewModel（主题模式）
- *
- * 详见 docs/PRD.md §7.2
+ * 外观设置 ViewModel（主题模式 + Dynamic Color）
  */
 @HiltViewModel
 class AppearanceViewModel @Inject constructor(
@@ -28,9 +26,22 @@ class AppearanceViewModel @Inject constructor(
             initialValue = ThemeMode.SYSTEM
         )
 
+    val dynamicColor: StateFlow<Boolean> = themePreferences.dynamicColor
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = false
+        )
+
     fun setThemeMode(mode: ThemeMode) {
         viewModelScope.launch {
             themePreferences.setThemeMode(mode)
+        }
+    }
+
+    fun setDynamicColor(enabled: Boolean) {
+        viewModelScope.launch {
+            themePreferences.setDynamicColor(enabled)
         }
     }
 }
